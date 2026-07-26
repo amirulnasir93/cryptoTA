@@ -335,7 +335,12 @@ export interface TrendChannel {
  * or ML prediction. It describes "if the current channel holds, these are
  * its boundaries," and is invalidated the moment price closes outside
  * either line. Returns null when there isn't enough swing structure (fewer
- * than 2 highs or 2 lows) to define a channel at all.
+ * than 2 highs or 2 lows) to define a channel at all, or when the two lines
+ * -- each fit through only 2 points -- are already inverted (support above
+ * resistance) as of the most recent candle: with that few anchors, the
+ * "last 2 highs" and "last 2 lows" don't always agree on which side is
+ * which, and a channel that's already nonsensical right now isn't worth
+ * showing at all.
  */
 export function computeTrendChannel(closes: number[], window = 3, extendBars = 5): TrendChannel | null {
   const swings = findSwingPoints(closes, window);
@@ -343,15 +348,38 @@ export function computeTrendChannel(closes: number[], window = 3, extendBars = 5
   const lows = swings.filter((s) => s.type === "low").slice(-2);
   if (highs.length < 2 || lows.length < 2) return null;
 
-  function extend(a: SwingPoint, b: SwingPoint): ChannelLine {
+  const lastIndex = closes.length - 1;
+
+  function lineOf(a: SwingPoint, b: SwingPoint) {
     const slope = (closes[b.index] - closes[a.index]) / (b.index - a.index);
-    const toIndex = closes.length - 1 + extendBars;
-    const toPrice = closes[a.index] + slope * (toIndex - a.index);
-    return { fromIndex: a.index, fromPrice: closes[a.index], toIndex, toPrice };
+    const intercept = closes[a.index] - slope * a.index; // price at index 0
+    return { anchor: a, slope, priceAt: (x: number) => slope * x + intercept, intercept };
   }
 
-  return {
-    upper: extend(highs[0], highs[1]),
-    lower: extend(lows[0], lows[1]),
-  };
+  const upperLine = lineOf(highs[0], highs[1]);
+  const lowerLine = lineOf(lows[0], lows[1]);
+
+  if (upperLine.priceAt(lastIndex) < lowerLine.priceAt(lastIndex)) return null;
+
+  // A converging pair ("wedge") can cross if extended far enough -- past that
+  // point, drawing the "resistance" line below the "support" line is
+  // nonsensical, since the wedge has already resolved. Clip the projection
+  // at the crossing point instead of drawing crossed lines past it.
+  let toIndex = lastIndex + extendBars;
+  const slopeDiff = upperLine.slope - lowerLine.slope;
+  if (Math.abs(slopeDiff) > 1e-9) {
+    const crossIndex = (lowerLine.intercept - upperLine.intercept) / slopeDiff;
+    if (crossIndex > lastIndex && crossIndex < toIndex) toIndex = crossIndex;
+  }
+
+  function extend(line: ReturnType<typeof lineOf>): ChannelLine {
+    return {
+      fromIndex: line.anchor.index,
+      fromPrice: closes[line.anchor.index],
+      toIndex,
+      toPrice: line.priceAt(toIndex),
+    };
+  }
+
+  return { upper: extend(upperLine), lower: extend(lowerLine) };
 }

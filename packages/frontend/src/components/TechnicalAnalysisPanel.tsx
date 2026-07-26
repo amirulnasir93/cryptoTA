@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import {
   Bar,
-  Brush,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -15,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ChartInterval, TokenAnalysisResult, TrendState } from "@crypto-analyzer/shared";
-import { CandlestickChart, type ZoomRange } from "./CandlestickChart";
+import { PriceChart, type ZoomRange } from "./PriceChart";
 
 const tickStyle = { fontSize: 11, fill: "var(--text-muted)" };
 const legendStyle = { fontSize: 12, color: "var(--text-muted)" };
@@ -57,11 +56,11 @@ export function TechnicalAnalysisPanel({
     return analysis.points.map((p) => ({ ...p, date: formatDate(p.timestamp, interval) }));
   }, [analysis, interval]);
 
-  // Zoom lives on the Price panel's own Brush (drag the handles to zoom,
-  // drag the middle to pan -- the same interaction DexScreener/MEXC use,
-  // just via a visible mini-map instead of scroll-wheel). Reset it whenever
-  // the underlying series changes so a stale index range from a previous,
-  // differently-sized dataset can't slice out of bounds.
+  // Zoom lives on the Price panel's own chart (native scroll/pinch/drag, via
+  // PriceChart's onVisibleRangeChange) and drives these Recharts indicator
+  // panels' slicing so they stay in sync. Reset it whenever the underlying
+  // series changes so a stale index range from a previous, differently-sized
+  // dataset can't slice out of bounds.
   useEffect(() => {
     setZoomRange(null);
   }, [data]);
@@ -160,38 +159,18 @@ export function TechnicalAnalysisPanel({
             </div>
           </div>
         </div>
-        <p className="mb-2 text-xs text-neutral-400">Drag the handles below the chart to zoom, drag the middle to pan.</p>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            {chartType === "candle" ? (
-              <CandlestickChart data={data} onZoomChange={setZoomRange} />
-            ) : (
-              <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-                <CartesianGrid stroke="var(--gridline)" vertical={false} />
-                <XAxis dataKey="date" tick={tickStyle} stroke="var(--gridline)" minTickGap={24} />
-                <YAxis tick={tickStyle} stroke="var(--gridline)" width={64} domain={["auto", "auto"]} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Line
-                  type="monotone"
-                  dataKey="close"
-                  stroke="var(--series-1)"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-                <Brush
-                  dataKey="date"
-                  height={18}
-                  stroke="var(--gridline)"
-                  fill="var(--chart-surface)"
-                  travellerWidth={8}
-                  tickFormatter={() => ""}
-                  onChange={setZoomRange}
-                />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
-        </div>
+        <p className="mb-2 text-xs text-neutral-400">
+          Scroll or pinch to zoom, drag to pan. Dotted lines are support/resistance from actual swing structure;
+          the dashed channel extends the last two swing highs/lows forward as a geometric read of current
+          structure — neither is a price prediction.
+        </p>
+        <PriceChart
+          points={analysis.points}
+          chartType={chartType}
+          keyLevels={analysis.keyLevels}
+          trendChannel={analysis.trendChannel}
+          onVisibleRangeChange={setZoomRange}
+        />
       </div>
 
       <ChartCard title="Volume">

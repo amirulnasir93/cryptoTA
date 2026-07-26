@@ -1,5 +1,5 @@
 import { config } from "../config.js";
-import { fetchJson } from "./base.js";
+import { fetchJson, fetchJsonWithReason, type FetchFailureReason } from "./base.js";
 
 const CG = "https://api.coingecko.com/api/v3";
 
@@ -49,28 +49,90 @@ export interface MarketChartResult {
   volumes: MarketChartPoint[];
 }
 
+export type MarketChartOutcome =
+  | { ok: true; data: MarketChartResult }
+  | { ok: false; reason: FetchFailureReason };
+
 /** Historical daily-ish price/volume series -- separate from fetchCoingeckoMarkets
  * because indicators like RSI/MACD need a real time series, not a single
  * current-price point. CoinGecko auto-picks granularity from `days` on the
- * free tier (hourly for a few months back, daily beyond ~90 days). */
-export async function fetchCoingeckoMarketChart(
-  id: string,
-  days = 90
-): Promise<MarketChartResult | null> {
+ * free tier (hourly for a few months back, daily beyond ~90 days).
+ *
+ * Returns the failure reason (not just null) because "CoinGecko rate-limited
+ * us" and "this token genuinely has no chart data" are very different
+ * problems for the caller to explain to a user -- the keyless public tier's
+ * rate limit is low enough that the former happens routinely under normal
+ * use (switching intervals a few times in a row is enough to trip it). */
+export async function fetchCoingeckoMarketChart(id: string, days = 90): Promise<MarketChartOutcome> {
   const params = new URLSearchParams({ vs_currency: "usd", days: String(days) });
   const headers: Record<string, string> = {};
   if (config.coingeckoApiKey) headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
 
-  const data = await fetchJson<{ prices: [number, number][]; total_volumes: [number, number][] }>(
+  const result = await fetchJsonWithReason<{ prices: [number, number][]; total_volumes: [number, number][] }>(
     `${CG}/coins/${id}/market_chart?${params}`,
     { headers }
   );
-  if (!data) return null;
+  if (!result.ok) return result;
 
   return {
-    prices: data.prices.map(([timestamp, value]) => ({ timestamp, value })),
-    volumes: data.total_volumes.map(([timestamp, value]) => ({ timestamp, value })),
+    ok: true,
+    data: {
+      prices: result.data.prices.map(([timestamp, value]) => ({ timestamp, value })),
+      volumes: result.data.total_volumes.map(([timestamp, value]) => ({ timestamp, value })),
+    },
   };
+}
+
+export interface CoingeckoCoinDetail {
+  description: { en?: string } | null;
+  categories: string[] | null;
+  genesis_date: string | null;
+  market_cap_rank: number | null;
+  sentiment_votes_up_percentage: number | null;
+  sentiment_votes_down_percentage: number | null;
+  links: {
+    homepage: string[];
+    chat_url: string[];
+    twitter_screen_name: string | null;
+    telegram_channel_identifier: string | null;
+    subreddit_url: string | null;
+    repos_url: { github: string[] };
+  } | null;
+  community_data: {
+    reddit_subscribers: number | null;
+    telegram_channel_user_count: number | null;
+  } | null;
+  developer_data: {
+    forks: number | null;
+    stars: number | null;
+    subscribers: number | null;
+    total_issues: number | null;
+    closed_issues: number | null;
+    pull_requests_merged: number | null;
+    pull_request_contributors: number | null;
+    commit_count_4_weeks: number | null;
+  } | null;
+}
+
+/** Project background (description/links/community/dev activity) -- a
+ * separate, much heavier payload than fetchCoingeckoMarkets, so only fetched
+ * on demand for the Insight tab, not on every refresh cycle. Confirmed
+ * against a live response before use: CoinGecko dropped twitter-follower
+ * counts from community_data a while back (not just undocumented -- genuinely
+ * absent from the payload), so that field is deliberately not modeled here. */
+export async function fetchCoingeckoCoinDetail(id: string): Promise<CoingeckoCoinDetail | null> {
+  const params = new URLSearchParams({
+    localization: "false",
+    tickers: "false",
+    market_data: "false",
+    community_data: "true",
+    developer_data: "true",
+    sparkline: "false",
+  });
+  const headers: Record<string, string> = {};
+  if (config.coingeckoApiKey) headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
+
+  return fetchJson<CoingeckoCoinDetail>(`${CG}/coins/${id}?${params}`, { headers });
 }
 
 export interface CoingeckoSearchResult {

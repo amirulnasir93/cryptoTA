@@ -7,19 +7,26 @@ import {
   useLabels,
   useToken,
   useTokenAnalysis,
+  useTokenInsight,
   useUpdateToken,
 } from "../api/queries";
 import { DataQualityBadge } from "../components/DataQualityBadge";
 import { DeltaText } from "../components/DeltaText";
+import { InsightPanel } from "../components/InsightPanel";
 import { TechnicalAnalysisPanel } from "../components/TechnicalAnalysisPanel";
+
+const TABS = ["Overview", "Technical analysis", "Insight"] as const;
+type Tab = (typeof TABS)[number];
 
 export function TokenDetail() {
   const { id } = useParams();
   const tokenId = id ? Number(id) : undefined;
   const { data: token, isLoading } = useToken(tokenId);
   const { data: labels } = useLabels();
+  const [tab, setTab] = useState<Tab>("Overview");
   const [chartInterval, setChartInterval] = useState<ChartInterval>("1d");
   const { data: analysis, isLoading: analysisLoading } = useTokenAnalysis(tokenId, chartInterval);
+  const { data: insight, isLoading: insightLoading } = useTokenInsight(tab === "Insight" ? tokenId : undefined);
   const updateToken = useUpdateToken();
   const [notesDraft, setNotesDraft] = useState<string | null>(null);
 
@@ -66,119 +73,150 @@ export function TokenDetail() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Metric label="Price" value={s?.priceCoingecko != null ? `$${s.priceCoingecko}` : "—"} />
-        <Metric label="24h" value={<DeltaText value={s?.change24hPct} />} />
-        <Metric label="7d" value={<DeltaText value={s?.change7dPct} />} />
-        <Metric label="30d" value={<DeltaText value={s?.change30dPct} />} />
-        <Metric label="Market cap" value={s?.marketCap != null ? formatUsd(s.marketCap) : "—"} />
-        <Metric label="FDV" value={s?.fdv != null ? formatUsd(s.fdv) : "—"} />
-        <Metric label="24h volume" value={s?.volume24h != null ? formatUsd(s.volume24h) : "—"} />
-        <Metric label="Vol / MCap" value={s?.volumeToMcap != null ? s.volumeToMcap.toFixed(2) : "—"} />
-        <Metric
-          label="ATH drawdown"
-          value={s?.drawdownFromAthPct != null ? `${s.drawdownFromAthPct.toFixed(1)}%` : "—"}
-        />
-        <Metric label="Float" value={s?.floatPct != null ? `${s.floatPct.toFixed(1)}%` : "—"} />
-        <Metric label="TVL" value={s?.tvl != null ? formatUsd(s.tvl) : "—"} />
-        <Metric label="TVL 30d" value={s?.tvlChange30dPct != null ? <DeltaText value={s.tvlChange30dPct} /> : "—"} />
+      <div className="flex gap-0.5 rounded-md border border-neutral-200 p-0.5 dark:border-neutral-800 w-fit">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`rounded px-3 py-1 text-sm font-medium ${
+              tab === t
+                ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="mb-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Per-source price</h2>
-        <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
-          {s?.gatingReason ?? "No snapshot yet — run a refresh."}
-        </p>
-        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <SourcePrice label="CoinGecko" value={s?.priceCoingecko ?? null} />
-          <SourcePrice label="DexScreener" value={s?.priceDexscreener ?? null} />
-          <SourcePrice label="Binance" value={s?.priceBinance ?? null} />
-          <SourcePrice label="MEXC" value={s?.priceMexc ?? null} />
-        </div>
-        {s?.assessableHorizons && s.assessableHorizons.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {s.assessableHorizons.map((h) => (
-              <span
-                key={h}
-                className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
-              >
-                {h.replace("_", " ")}
-              </span>
-            ))}
+      {tab === "Overview" && (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Metric label="Price" value={s?.priceCoingecko != null ? `$${s.priceCoingecko}` : "—"} />
+            <Metric label="24h" value={<DeltaText value={s?.change24hPct} />} />
+            <Metric label="7d" value={<DeltaText value={s?.change7dPct} />} />
+            <Metric label="30d" value={<DeltaText value={s?.change30dPct} />} />
+            <Metric label="Market cap" value={s?.marketCap != null ? formatUsd(s.marketCap) : "—"} />
+            <Metric label="FDV" value={s?.fdv != null ? formatUsd(s.fdv) : "—"} />
+            <Metric label="24h volume" value={s?.volume24h != null ? formatUsd(s.volume24h) : "—"} />
+            <Metric label="Vol / MCap" value={s?.volumeToMcap != null ? s.volumeToMcap.toFixed(2) : "—"} />
+            <Metric
+              label="ATH drawdown"
+              value={s?.drawdownFromAthPct != null ? `${s.drawdownFromAthPct.toFixed(1)}%` : "—"}
+            />
+            <Metric label="Float" value={s?.floatPct != null ? `${s.floatPct.toFixed(1)}%` : "—"} />
+            <Metric label="TVL" value={s?.tvl != null ? formatUsd(s.tvl) : "—"} />
+            <Metric
+              label="TVL 30d"
+              value={s?.tvlChange30dPct != null ? <DeltaText value={s.tvlChange30dPct} /> : "—"}
+            />
           </div>
-        )}
-      </section>
 
-      {analysisLoading ? (
-        <p className="text-sm text-neutral-500">Loading technical analysis…</p>
-      ) : analysis ? (
-        <TechnicalAnalysisPanel analysis={analysis} interval={chartInterval} onIntervalChange={setChartInterval} />
-      ) : null}
+          <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Per-source price</h2>
+            <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
+              {s?.gatingReason ?? "No snapshot yet — run a refresh."}
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <SourcePrice label="CoinGecko" value={s?.priceCoingecko ?? null} />
+              <SourcePrice label="DexScreener" value={s?.priceDexscreener ?? null} />
+              <SourcePrice label="Binance" value={s?.priceBinance ?? null} />
+              <SourcePrice label="MEXC" value={s?.priceMexc ?? null} />
+            </div>
+            {s?.assessableHorizons && s.assessableHorizons.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {s.assessableHorizons.map((h) => (
+                  <span
+                    key={h}
+                    className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                  >
+                    {h.replace("_", " ")}
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
 
-      {token.clusterSiblings.length > 0 && (
-        <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-          <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-            Cluster: {token.cluster}
-          </h2>
-          <p className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
-            These tokens don't move independently — a read on one is a read on the cluster.
-          </p>
-          <ul className="flex flex-wrap gap-4 text-sm">
-            {token.clusterSiblings.map((sib) => (
-              <li key={sib.id}>
-                <Link to={`/tokens/${sib.id}`} className="font-medium hover:underline">
-                  {sib.ticker}
-                </Link>{" "}
-                <DeltaText value={sib.latestSnapshot?.change24hPct} />
-              </li>
-            ))}
-          </ul>
-        </section>
+          {token.clusterSiblings.length > 0 && (
+            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+              <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                Cluster: {token.cluster}
+              </h2>
+              <p className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
+                These tokens don't move independently — a read on one is a read on the cluster.
+              </p>
+              <ul className="flex flex-wrap gap-4 text-sm">
+                {token.clusterSiblings.map((sib) => (
+                  <li key={sib.id}>
+                    <Link to={`/tokens/${sib.id}`} className="font-medium hover:underline">
+                      {sib.ticker}
+                    </Link>{" "}
+                    <DeltaText value={sib.latestSnapshot?.change24hPct} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Labels</h2>
+            <div className="flex flex-wrap gap-2">
+              {labels?.map((l) => {
+                const active = token.labels.some((tl) => tl.id === l.id);
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => toggleLabel(l.id)}
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                      active ? "border-transparent" : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
+                    }`}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `color-mix(in srgb, ${l.color ?? "#666"} 18%, transparent)`,
+                            color: l.color ?? undefined,
+                          }
+                        : undefined
+                    }
+                  >
+                    {l.name}
+                  </button>
+                );
+              })}
+              {(!labels || labels.length === 0) && (
+                <p className="text-sm text-neutral-400">No labels yet — create one on the Labels page.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Notes</h2>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              onBlur={saveNotes}
+              rows={3}
+              className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100"
+            />
+          </section>
+
+          <CatalystSection tokenId={token.id} catalysts={token.catalysts} />
+        </>
       )}
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Labels</h2>
-        <div className="flex flex-wrap gap-2">
-          {labels?.map((l) => {
-            const active = token.labels.some((tl) => tl.id === l.id);
-            return (
-              <button
-                key={l.id}
-                onClick={() => toggleLabel(l.id)}
-                className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                  active ? "border-transparent" : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
-                }`}
-                style={
-                  active
-                    ? {
-                        backgroundColor: `color-mix(in srgb, ${l.color ?? "#666"} 18%, transparent)`,
-                        color: l.color ?? undefined,
-                      }
-                    : undefined
-                }
-              >
-                {l.name}
-              </button>
-            );
-          })}
-          {(!labels || labels.length === 0) && (
-            <p className="text-sm text-neutral-400">No labels yet — create one on the Labels page.</p>
-          )}
-        </div>
-      </section>
+      {tab === "Technical analysis" &&
+        (analysisLoading ? (
+          <p className="text-sm text-neutral-500">Loading technical analysis…</p>
+        ) : analysis ? (
+          <TechnicalAnalysisPanel analysis={analysis} interval={chartInterval} onIntervalChange={setChartInterval} />
+        ) : null)}
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Notes</h2>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotesDraft(e.target.value)}
-          onBlur={saveNotes}
-          rows={3}
-          className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100"
-        />
-      </section>
-
-      <CatalystSection tokenId={token.id} catalysts={token.catalysts} />
+      {tab === "Insight" &&
+        (insightLoading ? (
+          <p className="text-sm text-neutral-500">Loading insight…</p>
+        ) : insight ? (
+          <InsightPanel insight={insight} />
+        ) : null)}
     </div>
   );
 }

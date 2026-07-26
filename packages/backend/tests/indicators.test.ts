@@ -187,6 +187,15 @@ describe("computeTrendChannel", () => {
     expect(computeTrendChannel(closes)).toBeNull();
   });
 
+  it("returns null when the last-2-highs and last-2-lows lines are already inverted at the last bar", () => {
+    // With only 2 anchor points per line, a sharply falling pair of highs and
+    // a sharply rising pair of lows can cross before "now" -- at that point
+    // the "resistance" line sits below the "support" line already, which is
+    // nonsensical to show at all (not just in the forward projection).
+    const closes = [134, 96, 115, 180, 81, 51, 101, 25, 103, 97, 40, 47, 81, 70];
+    expect(computeTrendChannel(closes, 2, 5)).toBeNull();
+  });
+
   it("extends a rising channel forward from the last two swing highs/lows", () => {
     // A clean up-channel: lows rising 100->105, highs rising 108(idx7)->118(idx12)
     const closes = [100, 104, 108, 104, 100, 105, 109, 113, 109, 105, 110, 114, 118, 114, 110];

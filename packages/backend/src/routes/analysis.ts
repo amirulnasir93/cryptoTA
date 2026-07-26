@@ -85,10 +85,15 @@ export async function analysisRoutes(appRaw: FastifyInstance) {
         };
       }
 
-      const chart = await fetchCoingeckoMarketChart(token.coingeckoId, INTERVAL_FETCH_DAYS[interval]);
-      if (!chart) {
-        return { available: false, reason: "CoinGecko did not return historical data for this token." };
+      const chartOutcome = await fetchCoingeckoMarketChart(token.coingeckoId, INTERVAL_FETCH_DAYS[interval]);
+      if (!chartOutcome.ok) {
+        const reason =
+          chartOutcome.reason === "rate_limited"
+            ? "CoinGecko rate-limited this request (the free public tier's limit is low and shared across everyone hitting it). Wait a few seconds and try again -- this isn't a real data gap."
+            : "CoinGecko did not return historical data for this token.";
+        return { available: false, reason };
       }
+      const chart = chartOutcome.data;
 
       const rawTimestamps = chart.prices.map((p) => p.timestamp);
       const rawCloses = chart.prices.map((p) => p.value);

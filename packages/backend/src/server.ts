@@ -17,6 +17,7 @@ import { snapshotRoutes } from "./routes/snapshots.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { syncRoutes } from "./routes/sync.js";
 import { analysisRoutes } from "./routes/analysis.js";
+import { insightRoutes } from "./routes/insight.js";
 import { lookupRoutes } from "./routes/lookup.js";
 import { prisma } from "./db.js";
 
@@ -44,6 +45,7 @@ async function buildServer() {
   await app.register(dashboardRoutes);
   await app.register(syncRoutes);
   await app.register(analysisRoutes);
+  await app.register(insightRoutes);
   await app.register(lookupRoutes);
 
   return app;

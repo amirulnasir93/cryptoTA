@@ -10,6 +10,7 @@ import type {
   Token,
   TokenAnalysisResult,
   TokenDetail,
+  TokenInsightResult,
 } from "@crypto-analyzer/shared";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -122,6 +123,8 @@ export const api = {
 
   getTokenAnalysis: (id: number, interval?: ChartInterval) =>
     request<TokenAnalysisResult>(`/tokens/${id}/analysis${interval ? `?interval=${interval}` : ""}`),
+
+  getTokenInsight: (id: number) => request<TokenInsightResult>(`/tokens/${id}/insight`),
 
   searchCoingecko: (query: string) =>
     request<CoingeckoSearchResult[]>(`/lookup/coingecko?q=${encodeURIComponent(query)}`),

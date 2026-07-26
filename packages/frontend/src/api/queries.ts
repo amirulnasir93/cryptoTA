@@ -26,6 +26,15 @@ export function useTokenAnalysis(id: number | undefined, interval: ChartInterval
   });
 }
 
+export function useTokenInsight(id: number | undefined) {
+  return useQuery({
+    queryKey: ["token-insight", id],
+    queryFn: () => api.getTokenInsight(id as number),
+    enabled: id !== undefined,
+    staleTime: 30 * 60_000, // description/links/community stats barely change minute to minute
+  });
+}
+
 export function useDashboard() {
   return useQuery({
     queryKey: ["dashboard"],

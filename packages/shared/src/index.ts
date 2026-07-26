@@ -204,6 +204,57 @@ export interface TokenAnalysisUnavailable {
 
 export type TokenAnalysisResult = TokenAnalysis | TokenAnalysisUnavailable;
 
+// Project background, not price/TA data -- sourced from CoinGecko's free,
+// keyless /coins/{id} endpoint (description, official links, community and
+// developer activity). This is the "grab info from the web" panel; it's
+// deliberately NOT a news feed -- there's no free, keyless crypto news API
+// (CoinGecko's own News API and DefiLlama's unlock data are paid-tier only,
+// confirmed while researching catalyst sources for this same app).
+export interface TokenInsightLinks {
+  homepage: string[];
+  twitter: string | null;
+  telegram: string | null;
+  subreddit: string | null;
+  github: string[];
+  chat: string[];
+}
+
+export interface TokenInsightCommunity {
+  redditSubscribers: number | null;
+  telegramUserCount: number | null;
+}
+
+export interface TokenInsightDeveloper {
+  stars: number | null;
+  forks: number | null;
+  subscribers: number | null;
+  totalIssues: number | null;
+  closedIssues: number | null;
+  pullRequestsMerged: number | null;
+  pullRequestContributors: number | null;
+  commitCount4Weeks: number | null;
+}
+
+export interface TokenInsight {
+  available: true;
+  description: string | null;
+  categories: string[];
+  genesisDate: string | null;
+  marketCapRank: number | null;
+  sentimentUpPct: number | null;
+  sentimentDownPct: number | null;
+  links: TokenInsightLinks;
+  community: TokenInsightCommunity;
+  developer: TokenInsightDeveloper;
+}
+
+export interface TokenInsightUnavailable {
+  available: false;
+  reason: string;
+}
+
+export type TokenInsightResult = TokenInsight | TokenInsightUnavailable;
+
 export interface CoingeckoSearchResult {
   id: string;
   name: string;
