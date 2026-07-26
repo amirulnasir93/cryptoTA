@@ -18,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _serverClientIdController;
   late final TextEditingController _sheetIdController;
   late final TextEditingController _coingeckoController;
+  late final TextEditingController _coinMarketCalController;
   String? _status;
   bool _busy = false;
 
@@ -28,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _serverClientIdController = TextEditingController(text: config.serverClientId ?? '');
     _sheetIdController = TextEditingController(text: config.sheetId ?? '');
     _coingeckoController = TextEditingController(text: config.coingeckoApiKey ?? '');
+    _coinMarketCalController = TextEditingController(text: config.coinMarketCalApiKey ?? '');
   }
 
   Future<void> _saveServerClientId() async {
@@ -72,6 +74,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveCoingeckoKey() async {
     await context.read<AppConfig>().setCoingeckoApiKey(_coingeckoController.text);
     setState(() => _status = 'CoinGecko API key saved.');
+  }
+
+  Future<void> _saveCoinMarketCalKey() async {
+    await context.read<AppConfig>().setCoinMarketCalApiKey(_coinMarketCalController.text);
+    setState(() => _status = 'CoinMarketCal API key saved.');
   }
 
   @override
@@ -179,6 +186,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(onPressed: _saveCoingeckoKey, child: const Text('Save key')),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        const SectionHeader(title: 'CoinMarketCal API key', subtitle: 'Optional'),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Shows a read-only "Upcoming market events" feed on the Dashboard, matched to your '
+                'watchlist tickers. Separate from your manually-tracked catalysts and never written to the Sheet. '
+                'Free-tier signup at coinmarketcal.com.',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              TextField(controller: _coinMarketCalController, obscureText: true),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(onPressed: _saveCoinMarketCalKey, child: const Text('Save key')),
               ),
             ],
           ),

@@ -47,6 +47,8 @@ import {
   fetchProtocol,
   fetchBinanceTicker,
   fetchFearGreedIndex,
+  fetchCoinMarketCalEvents,
+  matchWatchlistEvents,
   searchCoingecko as searchCoingeckoConnector,
 } from "@crypto-analyzer/shared";
 import { SheetsClient, watchlistTab, catalystsTab } from "./sheetsClient";
@@ -90,10 +92,12 @@ export class Repository {
   private snapshots = new Map<string, MetricSnapshot>();
   private sheets: SheetsClient;
   private coingeckoApiKey?: string;
+  private coinMarketCalApiKey?: string;
 
-  constructor(sheets: SheetsClient, coingeckoApiKey?: string) {
+  constructor(sheets: SheetsClient, coingeckoApiKey?: string, coinMarketCalApiKey?: string) {
     this.sheets = sheets;
     this.coingeckoApiKey = coingeckoApiKey;
+    this.coinMarketCalApiKey = coinMarketCalApiKey;
   }
 
   private tokenFromRow(rowNumber: number, row: string[]): Token {
@@ -414,6 +418,16 @@ export class Repository {
     // refresh loop's pacing concerns.
     const fearGreed = await fetchFearGreedIndex();
 
+    // Read-only external feed, only fetched when a key is configured --
+    // never written back into the Sheet (see marketEvents.ts's own doc
+    // comment on why, and repository.ts's createCatalyst for the
+    // Sheet-backed, user-managed equivalent).
+    let marketEvents: DashboardSummary["marketEvents"];
+    if (this.coinMarketCalApiKey) {
+      const events = await fetchCoinMarketCalEvents(this.coinMarketCalApiKey, 90);
+      if (events) marketEvents = matchWatchlistEvents(events, tokens, 90);
+    }
+
     return {
       generatedAt: now.toISOString(),
       tokenCount: tokens.length,
@@ -423,6 +437,7 @@ export class Repository {
       movers,
       tokens,
       fearGreed,
+      marketEvents,
     };
   }
 

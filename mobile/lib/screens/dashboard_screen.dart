@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository.dart';
 import '../models.dart';
+import '../market_events.dart';
 import '../widgets/common.dart';
 import '../widgets/skeleton.dart';
 import 'token_detail_screen.dart';
@@ -13,9 +14,13 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+// Cycles none -> biggest gainers first -> biggest losers first -> none.
+enum _GainSort { none, desc, asc }
+
 class _DashboardScreenState extends State<DashboardScreen> {
   late Future<DashboardSummary> _future;
   String? _selectedLabel;
+  _GainSort _gainSort = _GainSort.none;
 
   // Logged (not just surfaced via FutureBuilder's snapshot.error) so a
   // real device failure shows up in `adb logcat` instead of only ever being
@@ -57,9 +62,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final d = snapshot.data!;
           final goodCount = d.dataQualityCounts['Good'] ?? 0;
           final allLabels = {for (final t in d.tokens) for (final l in t.labels) l.name}.toList()..sort();
-          final visibleTokens = _selectedLabel == null
+          final filteredTokens = _selectedLabel == null
               ? d.tokens
               : d.tokens.where((t) => t.labels.any((l) => l.name == _selectedLabel)).toList();
+          final visibleTokens = [...filteredTokens];
+          if (_gainSort != _GainSort.none) {
+            visibleTokens.sort((a, b) {
+              final av = a.latestSnapshot?.change24hPct;
+              final bv = b.latestSnapshot?.change24hPct;
+              if (av == null && bv == null) return 0;
+              if (av == null) return 1; // no data sorts to the bottom regardless of direction
+              if (bv == null) return -1;
+              return _gainSort == _GainSort.desc ? bv.compareTo(av) : av.compareTo(bv);
+            });
+          }
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -205,15 +221,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ],
+                if (d.marketEvents.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const SectionHeader(
+                    title: 'Upcoming market events',
+                    subtitle: 'Next 90 days · via CoinMarketCal',
+                  ),
+                  Card(
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < d.marketEvents.length; i++) ...[
+                          if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: scheme.tertiaryContainer,
+                              child: Icon(Icons.public_rounded, size: 16, color: scheme.onTertiaryContainer),
+                            ),
+                            title: Text(
+                              '${d.marketEvents[i].ticker} · ${marketEventTypeLabel(d.marketEvents[i].eventType)}',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(d.marketEvents[i].description),
+                            trailing: Text(
+                              d.marketEvents[i].daysUntil == 0 ? 'today' : 'in ${d.marketEvents[i].daysUntil}d',
+                              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 SectionHeader(
                   title: 'Tokens',
-                  trailing: _selectedLabel == null
-                      ? null
-                      : TextButton(
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_selectedLabel != null)
+                        TextButton(
                           onPressed: () => setState(() => _selectedLabel = null),
                           child: const Text('Clear filter'),
                         ),
+                      IconButton(
+                        tooltip: switch (_gainSort) {
+                          _GainSort.none => 'Sort by 24h gain',
+                          _GainSort.desc => 'Sorted: biggest gainers first',
+                          _GainSort.asc => 'Sorted: biggest losers first',
+                        },
+                        icon: Icon(switch (_gainSort) {
+                          _GainSort.none => Icons.sort_rounded,
+                          _GainSort.desc => Icons.arrow_downward_rounded,
+                          _GainSort.asc => Icons.arrow_upward_rounded,
+                        }),
+                        color: _gainSort == _GainSort.none ? scheme.onSurfaceVariant : scheme.primary,
+                        onPressed: () => setState(() {
+                          _gainSort = switch (_gainSort) {
+                            _GainSort.none => _GainSort.desc,
+                            _GainSort.desc => _GainSort.asc,
+                            _GainSort.asc => _GainSort.none,
+                          };
+                        }),
+                      ),
+                    ],
+                  ),
                 ),
                 if (allLabels.isNotEmpty) ...[
                   SizedBox(

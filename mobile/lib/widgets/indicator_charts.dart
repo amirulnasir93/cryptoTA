@@ -249,47 +249,6 @@ class MacdChart extends StatelessWidget {
   }
 }
 
-/// Volume, colored by that candle's own up/down close (standard volume-
-/// histogram convention) -- not itself a signal, just corroborating context
-/// for the other reads (e.g. the divergence/gating logic elsewhere already
-/// treats volume as a liquidity floor, not a predictor).
-class VolumeChart extends StatelessWidget {
-  final List<AnalysisPoint> points;
-  const VolumeChart({super.key, required this.points});
-
-  @override
-  Widget build(BuildContext context) {
-    final maxVol = points.map((p) => p.volume).fold<double>(0, (a, b) => b > a ? b : a);
-    return _Panel(
-      title: 'Volume',
-      height: 90,
-      chart: BarChart(
-        BarChartData(
-          minY: 0,
-          maxY: maxVol * 1.1,
-          titlesData: _axisTitles(context, points),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: true, border: Border.all(color: Theme.of(context).dividerColor)),
-          barTouchData: BarTouchData(enabled: false),
-          barGroups: [
-            for (var i = 0; i < points.length; i++)
-              BarChartGroupData(
-                x: i,
-                barRods: [
-                  BarChartRodData(
-                    toY: points[i].volume,
-                    color: (i == 0 || points[i].close >= points[i - 1].close ? upColor : downColor).withValues(alpha: 0.7),
-                    width: (points.length > 60) ? 1.5 : 3,
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// On-Balance Volume -- only its slope/relationship to price carries
 /// information, never its absolute level (see Skills/indicators.md).
 class ObvChart extends StatelessWidget {

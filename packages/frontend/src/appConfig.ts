@@ -10,11 +10,13 @@ import { SheetsClient } from "./sheetsClient";
 const SHEET_ID_KEY = "crypto-analyzer:sheet-id";
 const WEB_CLIENT_ID_KEY = "crypto-analyzer:web-client-id";
 const COINGECKO_API_KEY_KEY = "crypto-analyzer:coingecko-api-key";
+const COINMARKETCAL_API_KEY_KEY = "crypto-analyzer:coinmarketcal-api-key";
 
 export interface AppSettings {
   sheetId: string;
   webClientId: string;
   coingeckoApiKey: string;
+  coinMarketCalApiKey: string;
 }
 
 export function getSettings(): AppSettings {
@@ -22,6 +24,7 @@ export function getSettings(): AppSettings {
     sheetId: localStorage.getItem(SHEET_ID_KEY) ?? "",
     webClientId: localStorage.getItem(WEB_CLIENT_ID_KEY) ?? "",
     coingeckoApiKey: localStorage.getItem(COINGECKO_API_KEY_KEY) ?? "",
+    coinMarketCalApiKey: localStorage.getItem(COINMARKETCAL_API_KEY_KEY) ?? "",
   };
 }
 
@@ -33,6 +36,9 @@ export function setWebClientId(value: string): void {
 }
 export function setCoingeckoApiKey(value: string): void {
   localStorage.setItem(COINGECKO_API_KEY_KEY, value.trim());
+}
+export function setCoinMarketCalApiKey(value: string): void {
+  localStorage.setItem(COINMARKETCAL_API_KEY_KEY, value.trim());
 }
 
 export function isConfigured(settings: AppSettings = getSettings()): boolean {
@@ -58,10 +64,10 @@ let cached: { key: string; repository: Repository } | null = null;
 export function getRepository(): Repository | null {
   const settings = getSettings();
   if (!isConfigured(settings)) return null;
-  const key = `${settings.sheetId}::${settings.webClientId}::${settings.coingeckoApiKey}`;
+  const key = `${settings.sheetId}::${settings.webClientId}::${settings.coingeckoApiKey}::${settings.coinMarketCalApiKey}`;
   if (cached && cached.key === key) return cached.repository;
   const sheets = new SheetsClient(settings.sheetId, settings.webClientId);
-  const repository = new Repository(sheets, settings.coingeckoApiKey || undefined);
+  const repository = new Repository(sheets, settings.coingeckoApiKey || undefined, settings.coinMarketCalApiKey || undefined);
   cached = { key, repository };
   return repository;
 }

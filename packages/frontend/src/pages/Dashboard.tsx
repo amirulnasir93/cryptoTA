@@ -16,7 +16,7 @@ export function Dashboard() {
     return <p style={{ color: "var(--delta-down)" }}>{error instanceof Error ? error.message : "Failed to load dashboard."}</p>;
   }
 
-  const { tokenCount, dataQualityCounts, clusterExposure, upcomingCatalysts, movers, tokens, fearGreed } = data;
+  const { tokenCount, dataQualityCounts, clusterExposure, upcomingCatalysts, movers, tokens, fearGreed, marketEvents } = data;
   const fearGreedColor = fearGreed
     ? fearGreed.value >= 55
       ? "var(--delta-up)"
@@ -73,6 +73,31 @@ export function Dashboard() {
                 </span>
                 <span className="shrink-0 text-neutral-500 dark:text-neutral-400">
                   {c.daysUntil === 0 ? "today" : `in ${c.daysUntil}d`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {marketEvents && marketEvents.length > 0 && (
+        <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+              Upcoming market events (90 days)
+            </h2>
+            <span className="text-xs text-neutral-400">via CoinMarketCal</span>
+          </div>
+          <ul className="space-y-1.5 text-sm">
+            {marketEvents.map((e, i) => (
+              <li key={i} className="flex items-center justify-between gap-4">
+                <span>
+                  <span className="font-medium">{e.ticker}</span>{" "}
+                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs dark:bg-neutral-800">{e.eventType}</span>{" "}
+                  {e.description}
+                </span>
+                <span className="shrink-0 text-neutral-500 dark:text-neutral-400">
+                  {e.daysUntil === 0 ? "today" : `in ${e.daysUntil}d`}
                 </span>
               </li>
             ))}

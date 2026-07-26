@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getSettings, setCoingeckoApiKey, setSheetId, setWebClientId } from "../appConfig";
+import { getSettings, setCoinMarketCalApiKey, setCoingeckoApiKey, setSheetId, setWebClientId } from "../appConfig";
 import { googleAuth } from "../googleAuth";
 
 export function Settings() {
@@ -114,6 +114,26 @@ export function Settings() {
           onClick={() => {
             setCoingeckoApiKey(settings.coingeckoApiKey);
             setStatus("CoinGecko API key saved.");
+          }}
+        >
+          Save key
+        </SaveButton>
+      </Section>
+
+      <Section
+        title="CoinMarketCal API key (optional)"
+        hint="Free-tier signup at coinmarketcal.com/en/api. Shows a read-only 'Upcoming market events' feed on the Dashboard (unlock/listing/governance/launch events matched to your watchlist) -- separate from your manually-tracked catalysts and never written to the Sheet."
+      >
+        <Field
+          value={settings.coinMarketCalApiKey}
+          type="password"
+          onChange={(v) => setSettings((s) => ({ ...s, coinMarketCalApiKey: v }))}
+        />
+        <SaveButton
+          onClick={() => {
+            setCoinMarketCalApiKey(settings.coinMarketCalApiKey);
+            setStatus("CoinMarketCal API key saved.");
+            refetchEverything();
           }}
         >
           Save key

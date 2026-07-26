@@ -7,6 +7,7 @@ import '../constants.dart';
 import '../models.dart';
 import '../widgets/common.dart';
 import '../widgets/searchable_field.dart';
+import '../widgets/skeleton.dart';
 import 'insight_tab.dart';
 import 'technical_analysis_tab.dart';
 
@@ -122,7 +123,7 @@ class _OverviewTabState extends State<_OverviewTab> {
       future: widget.tokenFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const TokenOverviewSkeleton();
         }
         if (snapshot.hasError) {
           return ErrorRetry(message: '${snapshot.error}', onRetry: widget.onChanged);

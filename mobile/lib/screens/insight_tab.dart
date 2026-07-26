@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
+import '../widgets/skeleton.dart';
 
 class InsightTab extends StatefulWidget {
   final int tokenId;
@@ -38,7 +39,7 @@ class _InsightTabState extends State<InsightTab> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const InsightSkeleton();
         }
         if (snapshot.hasError) {
           return ErrorRetry(message: '${snapshot.error}', onRetry: _reload);

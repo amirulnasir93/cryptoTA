@@ -1,3 +1,4 @@
+import 'package:candlesticks/candlesticks.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository.dart';
@@ -5,7 +6,7 @@ import '../models.dart';
 import '../widgets/candlestick_chart_widget.dart';
 import '../widgets/common.dart';
 import '../widgets/indicator_charts.dart';
-import '../widgets/zoomable_range.dart';
+import '../widgets/skeleton.dart';
 
 const _intervals = ['15m', '1h', '2h', '4h', '1d', '2d', '3d', '1w', '1M'];
 
@@ -20,11 +21,23 @@ class TechnicalAnalysisTab extends StatefulWidget {
 class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
   String _interval = '1d';
   late Future<TokenAnalysisResult> _future;
+  late CandlesticksController _chartController;
+  int _totalPoints = 0;
+  int _visibleStart = 0;
+  int _visibleEnd = 0;
 
   @override
   void initState() {
     super.initState();
+    _chartController = CandlesticksController()..addListener(_onViewportChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _chartController.removeListener(_onViewportChanged);
+    _chartController.dispose();
+    super.dispose();
   }
 
   void _load() {
@@ -32,9 +45,34 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
   }
 
   void _setInterval(String interval) {
+    // Old candles' index range means nothing against a completely different
+    // series -- a fresh controller (not just a reset viewport) also clears
+    // its cached candle count/chart width from the previous data.
+    _chartController.removeListener(_onViewportChanged);
+    _chartController.dispose();
+    _chartController = CandlesticksController()..addListener(_onViewportChanged);
     setState(() {
       _interval = interval;
+      _visibleStart = 0;
+      _visibleEnd = 0;
       _load();
+    });
+  }
+
+  // The candlesticks package indexes candles newest-first (0 = newest),
+  // opposite of AnalysisPoint's chronological order (0 = oldest) -- convert
+  // its visible-range indices into ours so the indicator panels below can
+  // slice the exact same window.
+  void _onViewportChanged() {
+    if (_totalPoints == 0) return;
+    final viewport = _chartController.value;
+    final firstPkg = _chartController.firstVisibleCandleIndexFor(viewport);
+    final lastPkg = _chartController.lastVisibleCandleIndexFor(viewport);
+    final start = (_totalPoints - 1 - lastPkg).clamp(0, _totalPoints - 1);
+    final end = (_totalPoints - firstPkg).clamp(start + 1, _totalPoints);
+    setState(() {
+      _visibleStart = start;
+      _visibleEnd = end;
     });
   }
 
@@ -65,7 +103,7 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return const TechnicalAnalysisSkeleton();
               }
               if (snapshot.hasError) {
                 return ErrorRetry(message: '${snapshot.error}', onRetry: () => setState(_load));
@@ -79,6 +117,14 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                   ),
                 );
               }
+
+              if (_totalPoints != result.points.length) {
+                _totalPoints = result.points.length;
+                _visibleStart = 0;
+                _visibleEnd = _totalPoints;
+              }
+              final indicatorPoints = result.points.sublist(_visibleStart, _visibleEnd);
+
               return ListView(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, bottomSafePadding(context)),
                 children: [
@@ -91,44 +137,29 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'A mechanical read of current indicator state -- not a price forecast. Pinch to zoom, drag to pan, double-tap to reset.',
+                    'A mechanical read of current indicator state -- not a price forecast. Pinch to zoom, drag to pan.',
                     style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
-                  ZoomableRange(
-                    key: ValueKey(_interval),
-                    totalLength: result.points.length,
-                    builder: (context, startIndex, endIndex) {
-                      final visible = result.points.sublist(startIndex, endIndex);
-                      return Column(
-                        children: [
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(4, 12, 12, 4),
-                              child: SizedBox(
-                                height: 280,
-                                child: CandlestickChartWidget(
-                                  points: visible,
-                                  keyLevels: result.keyLevels,
-                                  trendChannel: result.trendChannel,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          MacdChart(points: visible),
-                          const SizedBox(height: 8),
-                          StochRsiChart(points: visible),
-                          const SizedBox(height: 8),
-                          RsiChart(points: visible),
-                          const SizedBox(height: 8),
-                          VolumeChart(points: visible),
-                          const SizedBox(height: 8),
-                          ObvChart(points: visible),
-                        ],
-                      );
-                    },
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: SizedBox(
+                      height: 340,
+                      child: CandlestickChartWidget(
+                        key: ValueKey(_interval),
+                        points: result.points,
+                        controller: _chartController,
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                  MacdChart(points: indicatorPoints),
+                  const SizedBox(height: 8),
+                  StochRsiChart(points: indicatorPoints),
+                  const SizedBox(height: 8),
+                  RsiChart(points: indicatorPoints),
+                  const SizedBox(height: 8),
+                  ObvChart(points: indicatorPoints),
                   if (result.divergences.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const SectionHeader(title: 'Divergence'),

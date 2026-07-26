@@ -15,7 +15,9 @@ import 'connectors/dexscreener.dart' as dex;
 import 'connectors/defillama.dart' as llama;
 import 'connectors/binance_compatible.dart' as exch;
 import 'connectors/fear_greed.dart';
+import 'connectors/coinmarketcal.dart';
 import 'connectors/http_client.dart' show FetchFailureReason;
+import 'market_events.dart';
 
 const _validStatuses = ['active', 'archived', 'removed'];
 const _minCandlesForAnalysis = 40;
@@ -37,7 +39,8 @@ String formatLabelList(List<String> names) {
 class AppRepository {
   final SheetsClient sheets;
   String? coingeckoApiKey;
-  AppRepository(this.sheets, {this.coingeckoApiKey});
+  String? coinMarketCalApiKey;
+  AppRepository(this.sheets, {this.coingeckoApiKey, this.coinMarketCalApiKey});
 
   /// Last-fetched live metrics per ticker. Empty until [refreshPrices] has
   /// run at least once -- there is no persisted history on the phone (see
@@ -386,6 +389,18 @@ class AppRepository {
     // refresh loop's pacing concerns.
     final fearGreed = await fetchFearGreedIndex();
 
+    // Read-only "upcoming events" feed from CoinMarketCal, separate from the
+    // manually-tracked Catalysts tab above -- only fetched if the user has
+    // opted in with their own key in Settings (never written back to the Sheet).
+    var marketEvents = <MarketEvent>[];
+    if (coinMarketCalApiKey != null && coinMarketCalApiKey!.isNotEmpty) {
+      final events = await fetchCoinMarketCalEvents(coinMarketCalApiKey, daysAhead: 90);
+      if (events != null) {
+        final refs = tokens.map((t) => WatchlistTokenRef(ticker: t.ticker, projectName: t.projectName)).toList();
+        marketEvents = matchWatchlistEvents(events, refs, daysAhead: 90);
+      }
+    }
+
     return DashboardSummary(
       generatedAt: now.toIso8601String(),
       tokenCount: tokens.length,
@@ -395,6 +410,7 @@ class AppRepository {
       movers: movers.take(5).map((t) => Mover(ticker: t.ticker, tokenId: t.id, change24hPct: t.latestSnapshot?.change24hPct)).toList(),
       tokens: tokens,
       fearGreed: fearGreed,
+      marketEvents: marketEvents,
     );
   }
 

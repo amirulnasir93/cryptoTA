@@ -131,7 +131,11 @@ class _AppRootState extends State<AppRoot> {
     // token's detail screen.
     return Provider<AppRepository>(
       key: ValueKey(config.sheetId),
-      create: (_) => AppRepository(SheetsClient(config.sheetId!), coingeckoApiKey: config.coingeckoApiKey),
+      create: (_) => AppRepository(
+        SheetsClient(config.sheetId!),
+        coingeckoApiKey: config.coingeckoApiKey,
+        coinMarketCalApiKey: config.coinMarketCalApiKey,
+      ),
       child: _shell(home: const AppShell()),
     );
   }

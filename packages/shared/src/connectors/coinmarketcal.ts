@@ -1,5 +1,9 @@
-import { config } from "../config.js";
-import { fetchJson } from "@crypto-analyzer/shared";
+import { fetchJson } from "./base.js";
+
+// apiKey is an explicit parameter, not read from a shared config module --
+// this file is imported by both the Node backend (its own config.ts reads
+// COINMARKETCAL_API_KEY from process.env) and the browser frontend/mobile
+// app (their own local settings storage), neither of which the other can see.
 
 const CMC_CAL = "https://api.coinmarketcal.com/v2";
 
@@ -42,8 +46,12 @@ function toDateRangeParam(date: Date): string {
  * this app -- is safer than trusting a server-side `coins=` filter to
  * resolve the right asset.
  */
-export async function fetchCoinMarketCalEvents(daysAhead = 90, max = 300): Promise<CoinMarketCalEvent[] | null> {
-  if (!config.coinMarketCalApiKey) return null;
+export async function fetchCoinMarketCalEvents(
+  apiKey: string | undefined,
+  daysAhead = 90,
+  max = 300
+): Promise<CoinMarketCalEvent[] | null> {
+  if (!apiKey) return null;
 
   const now = new Date();
   const until = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
@@ -56,7 +64,7 @@ export async function fetchCoinMarketCalEvents(daysAhead = 90, max = 300): Promi
   });
 
   const data = await fetchJson<{ data?: CoinMarketCalEvent[] }>(`${CMC_CAL}/events?${params}`, {
-    headers: { "x-api-key": config.coinMarketCalApiKey },
+    headers: { "x-api-key": apiKey },
   });
   return data?.data ?? null;
 }

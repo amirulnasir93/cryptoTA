@@ -155,3 +155,131 @@ class _TokenRowSkeleton extends StatelessWidget {
     );
   }
 }
+
+/// Mirrors the Token Detail Overview tab's real layout.
+class TokenOverviewSkeleton extends StatelessWidget {
+  const TokenOverviewSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        Row(
+          children: [
+            const Skeleton.circle(size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Skeleton(width: 120, height: 16, borderRadius: BorderRadius.circular(4)),
+                  const SizedBox(height: 6),
+                  Skeleton(width: 80, height: 11, borderRadius: BorderRadius.circular(4)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 2.1,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          children: const [
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Skeleton(width: 100, height: 15),
+        const SizedBox(height: 10),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Skeleton(width: double.infinity, height: 60))),
+        const SizedBox(height: 20),
+        const Skeleton(width: 80, height: 15),
+        const SizedBox(height: 10),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Skeleton(width: double.infinity, height: 90))),
+      ],
+    );
+  }
+}
+
+/// Mirrors the Technical Analysis tab's real layout (candlestick + indicator
+/// panels), matching each real panel's actual fixed height.
+class TechnicalAnalysisSkeleton extends StatelessWidget {
+  const TechnicalAnalysisSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Skeleton(width: 70, height: 20, borderRadius: BorderRadius.circular(999)),
+            const Skeleton(width: 80, height: 12),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Card(child: SizedBox(height: 340, child: Center(child: Skeleton(width: double.infinity, height: 340)))),
+        const SizedBox(height: 12),
+        for (final h in [110.0, 90.0, 120.0, 120.0, 100.0]) ...[
+          Card(child: SizedBox(height: h, child: Padding(padding: const EdgeInsets.all(14), child: Skeleton(width: double.infinity, height: h - 28)))),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+/// Mirrors the Insight tab's real layout (description card + stat grid).
+class InsightSkeleton extends StatelessWidget {
+  const InsightSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Skeleton(width: double.infinity, height: 70))),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            Skeleton(width: 70, height: 26, borderRadius: BorderRadius.circular(999)),
+            Skeleton(width: 90, height: 26, borderRadius: BorderRadius.circular(999)),
+            Skeleton(width: 60, height: 26, borderRadius: BorderRadius.circular(999)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 2.1,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          children: const [
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+            _StatTileSkeleton(),
+          ],
+        ),
+      ],
+    );
+  }
+}

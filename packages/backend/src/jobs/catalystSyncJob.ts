@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
-import { eventTitle, fetchCoinMarketCalEvents, type CoinMarketCalEvent } from "../connectors/coinmarketcal.js";
+import { config } from "../config.js";
+import { eventTitle, fetchCoinMarketCalEvents, classifyEventType } from "@crypto-analyzer/shared";
 
 export interface CatalystSyncSummary {
   ranAt: string;
@@ -7,24 +8,6 @@ export interface CatalystSyncSummary {
   skippedCollisionRisk: string[];
   eventsScanned: number;
   skipped?: string;
-}
-
-const CATEGORY_TO_EVENT_TYPE: { patterns: string[]; eventType: "unlock" | "listing" | "governance" | "launch" }[] = [
-  { patterns: ["unlock", "vesting", "cliff"], eventType: "unlock" },
-  { patterns: ["listing", "exchange"], eventType: "listing" },
-  { patterns: ["governance", "vote", "proposal"], eventType: "governance" },
-  { patterns: ["mainnet", "launch", "upgrade", "fork", "release"], eventType: "launch" },
-];
-
-function classifyEventType(event: CoinMarketCalEvent): "unlock" | "listing" | "governance" | "launch" | "other" {
-  const categoryNames = (event.categories ?? []).map((c) => c.name.toLowerCase());
-  const title = eventTitle(event).toLowerCase();
-  for (const { patterns, eventType } of CATEGORY_TO_EVENT_TYPE) {
-    if (categoryNames.some((c) => patterns.some((p) => c.includes(p))) || patterns.some((p) => title.includes(p))) {
-      return eventType;
-    }
-  }
-  return "other";
 }
 
 function normalize(s: string): string {
@@ -56,7 +39,7 @@ export async function runCatalystSync(): Promise<CatalystSyncSummary> {
     eventsScanned: 0,
   };
 
-  const events = await fetchCoinMarketCalEvents(90);
+  const events = await fetchCoinMarketCalEvents(config.coinMarketCalApiKey, 90);
   if (!events) {
     summary.skipped =
       "COINMARKETCAL_API_KEY not configured, or CoinMarketCal returned no data -- see docs/CATALYSTS_SETUP.md";

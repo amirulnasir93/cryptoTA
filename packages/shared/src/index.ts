@@ -18,6 +18,8 @@ export * from "./connectors/defillama.js";
 export * from "./connectors/binanceCompatibleExchange.js";
 export * from "./connectors/binance.js";
 export * from "./connectors/fearGreed.js";
+export * from "./connectors/coinmarketcal.js";
+export * from "./marketEvents.js";
 
 // `export * from` re-exports these for external consumers but doesn't bind
 // them locally -- imported here too since the API-contract types below
@@ -26,6 +28,7 @@ import type { DataQuality, Horizon } from "./gating.js";
 import type { ChartInterval } from "./candles.js";
 import type { TrendState, KeyLevel } from "./indicators.js";
 import type { FearGreedIndex } from "./connectors/fearGreed.js";
+import type { MarketEvent } from "./marketEvents.js";
 
 export type TokenStatus = "active" | "archived" | "removed";
 // DataQuality and Horizon now come from gating.js (re-exported above) --
@@ -151,6 +154,12 @@ export interface DashboardSummary {
   // refreshAndGetDashboard; the self-hosted backend's existing dashboard
   // route doesn't set this.
   fearGreed?: FearGreedIndex | null;
+  // Optional, and only populated when a CoinMarketCal API key is configured
+  // -- a read-only external events feed, distinct from upcomingCatalysts
+  // (which come from the Sheet's own Catalysts tab and are user-managed).
+  // Never auto-written into the Sheet -- see marketEvents.ts's own doc
+  // comment for why.
+  marketEvents?: MarketEvent[];
 }
 
 export interface ConflictLogEntry {
