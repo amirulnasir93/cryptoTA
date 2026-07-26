@@ -280,17 +280,26 @@ function CatalystSection({ ticker, catalysts }: { ticker: string; catalysts: Cat
     eventType: "unlock",
     description: "",
   });
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!form.eventDate || !form.description) return;
-    await createCatalyst.mutateAsync({
-      ticker,
-      eventDate: form.eventDate,
-      eventType: form.eventType,
-      description: form.description,
-    });
-    setForm({ eventDate: "", eventType: "unlock", description: "" });
+    if (!form.eventDate || !form.description) {
+      setFormError(!form.eventDate ? "Pick a date first." : "Description is required.");
+      return;
+    }
+    setFormError(null);
+    try {
+      await createCatalyst.mutateAsync({
+        ticker,
+        eventDate: form.eventDate,
+        eventType: form.eventType,
+        description: form.description,
+      });
+      setForm({ eventDate: "", eventType: "unlock", description: "" });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not add catalyst.");
+    }
   }
 
   return (
@@ -353,11 +362,13 @@ function CatalystSection({ ticker, catalysts }: { ticker: string; catalysts: Cat
         </div>
         <button
           type="submit"
-          className="rounded-md bg-neutral-900 px-3 py-1.5 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+          disabled={createCatalyst.isPending}
+          className="rounded-md bg-neutral-900 px-3 py-1.5 font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
         >
-          Add
+          {createCatalyst.isPending ? "Adding…" : "Add"}
         </button>
       </form>
+      {formError && <p className="mt-2 text-xs" style={{ color: "var(--delta-down)" }}>{formError}</p>}
     </section>
   );
 }

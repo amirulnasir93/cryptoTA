@@ -528,6 +528,12 @@ class TrendChannel {
       TrendChannel(upper: ChannelLine.fromJson(json['upper'] as Map<String, dynamic>), lower: ChannelLine.fromJson(json['lower'] as Map<String, dynamic>));
 }
 
+/// Which market-data source the candlestick chart/indicators are computed
+/// from. CoinGecko is tick-level close prices only, capped at 365 days of
+/// history on the free tier; Binance returns real OHLCV and has no such
+/// depth limit, but only exists for tokens that actually trade there.
+enum ChartSource { coingecko, binance }
+
 /// Mirrors TokenAnalysisResult (a TS union) as available/unavailable state
 /// on one class, since Dart doesn't discriminate unions as cleanly as TS.
 class TokenAnalysisResult {
@@ -542,8 +548,12 @@ class TokenAnalysisResult {
   final String? trendBasis;
   final List<KeyLevel> keyLevels;
   final TrendChannel? trendChannel;
+  // Whether this token has a binanceSymbol configured -- populated regardless
+  // of which source actually produced this result, so the UI knows whether
+  // to offer the Binance chart-source option without a separate lookup.
+  final bool binanceAvailable;
 
-  TokenAnalysisResult.unavailable(this.reason)
+  TokenAnalysisResult.unavailable(this.reason, {this.binanceAvailable = false})
       : available = false,
         tokenId = null,
         ticker = null,
@@ -568,6 +578,7 @@ class TokenAnalysisResult {
     required this.trendBasis,
     required this.keyLevels,
     required this.trendChannel,
+    this.binanceAvailable = false,
   })  : available = true,
         reason = null;
 

@@ -221,7 +221,13 @@ class AppRepository {
   Future<void> createCatalyst(Map<String, dynamic> input) async {
     await sheets.appendRow(catalystsTab, [
       (input['ticker'] as String).toUpperCase(),
-      input['eventDate'] as String,
+      // Leading apostrophe forces Sheets (valueInputOption=USER_ENTERED) to
+      // store this as literal text instead of auto-detecting it as a date
+      // and silently rewriting it to the spreadsheet's locale date format
+      // (e.g. "8/15/2026") on read-back -- which then fails Dart's strict
+      // ISO-8601-only DateTime.parse. Sheets strips the apostrophe itself;
+      // it never appears in the stored value.
+      "'${input['eventDate'] as String}",
       input['eventType'] as String,
       input['description'] as String,
       input['sizePctOfSupply']?.toString() ?? '',
@@ -414,11 +420,35 @@ class AppRepository {
     );
   }
 
-  Future<TokenAnalysisResult> getTokenAnalysis(int rowNumber, String interval) async {
+  Future<TokenAnalysisResult> getTokenAnalysis(
+    int rowNumber,
+    String interval, {
+    ChartSource source = ChartSource.coingecko,
+  }) async {
     final token = await getToken(rowNumber);
+    final binanceAvailable = token.binanceSymbol != null && token.binanceSymbol!.isNotEmpty;
+
+    if (source == ChartSource.binance) {
+      if (!binanceAvailable) {
+        return TokenAnalysisResult.unavailable(
+          'No Binance symbol on this token, so there\'s no Binance candle history to use.',
+          binanceAvailable: false,
+        );
+      }
+      final builtCandles = await _fetchBinanceCandles(token.binanceSymbol!, interval);
+      if (builtCandles == null) {
+        return TokenAnalysisResult.unavailable(
+          'Binance did not return historical data for this symbol.',
+          binanceAvailable: true,
+        );
+      }
+      return _analysisFromCandles(token, interval, builtCandles, binanceAvailable: true);
+    }
+
     if (token.coingeckoId == null) {
       return TokenAnalysisResult.unavailable(
         "No CoinGecko id on this token, so there's no historical price series to compute indicators from.",
+        binanceAvailable: binanceAvailable,
       );
     }
 
@@ -428,7 +458,7 @@ class AppRepository {
       final reason = outcome.reason == FetchFailureReason.rateLimited
           ? "CoinGecko rate-limited this request (the free public tier's limit is low and shared across everyone hitting it). Wait a few seconds and try again -- this isn't a real data gap."
           : "CoinGecko did not return historical data for this token.";
-      return TokenAnalysisResult.unavailable(reason);
+      return TokenAnalysisResult.unavailable(reason, binanceAvailable: binanceAvailable);
     }
 
     final chart = outcome.data!;
@@ -437,14 +467,51 @@ class AppRepository {
     final rawVolumes = _alignVolumes(chart.prices, chart.volumes);
 
     final builtCandles = candles.buildCandles(interval, rawTimestamps, rawCloses, rawVolumes);
+    return _analysisFromCandles(
+      token,
+      interval,
+      builtCandles,
+      binanceAvailable: binanceAvailable,
+      shortHistoryReason: interval == '1M'
+          ? "CoinGecko's free tier caps historical queries at 365 days (~12 months), which isn't enough for MACD/RSI to warm up (need ~$_minCandlesForAnalysis). Try 1w or 1d instead, or switch to the Binance source for deeper history."
+          : "need at least $_minCandlesForAnalysis for MACD/RSI to mean anything. Try a coarser interval, or switch to the Binance source for deeper history.",
+    );
+  }
+
+  /// Fetches real OHLCV directly from Binance -- no 365-day cap like
+  /// CoinGecko's market_chart, so this gives the chart a genuinely deeper
+  /// history option. Binance has no native "2d" granularity, so that one
+  /// case fetches daily candles and chunks pairs locally, mirroring how
+  /// candles.dart already handles the same gap for CoinGecko's tick data.
+  Future<List<candles.Candle>?> _fetchBinanceCandles(String symbol, String interval) async {
+    if (interval == '2d') {
+      final daily = await exch.fetchBinanceKlines(symbol, '1d', limit: 1000);
+      if (daily == null || daily.isEmpty) return null;
+      return candles.chunkCandles(daily, 2);
+    }
+    final native = exch.binanceNativeIntervals[interval];
+    if (native == null) return null;
+    return exch.fetchBinanceKlines(symbol, native, limit: 1000);
+  }
+
+  /// Shared indicator-computation pipeline -- identical whether the input
+  /// candles came from CoinGecko's tick data or straight from Binance's
+  /// klines, since indicators only ever look at closes/volumes.
+  TokenAnalysisResult _analysisFromCandles(
+    Token token,
+    String interval,
+    List<candles.Candle> builtCandles, {
+    required bool binanceAvailable,
+    String? shortHistoryReason,
+  }) {
     final closes = builtCandles.map((c) => c.close).toList();
     final volumes = builtCandles.map((c) => c.volume).toList();
 
     if (closes.length < _minCandlesForAnalysis) {
-      final reason = interval == '1M'
-          ? "Only ${closes.length} monthly candle(s) available -- CoinGecko's free tier caps historical queries at 365 days (~12 months), which isn't enough for MACD/RSI to warm up (need ~$_minCandlesForAnalysis). Try 1w or 1d instead."
+      final reason = shortHistoryReason != null
+          ? 'Only ${closes.length} candle(s) available at $interval -- $shortHistoryReason'
           : "Only ${closes.length} candle(s) of history available at $interval -- need at least $_minCandlesForAnalysis for MACD/RSI to mean anything. Try a coarser interval.";
-      return TokenAnalysisResult.unavailable(reason);
+      return TokenAnalysisResult.unavailable(reason, binanceAvailable: binanceAvailable);
     }
 
     final rsi = ind.computeRSI(closes);
@@ -521,6 +588,7 @@ class AppRepository {
       trendBasis: trend.basis,
       keyLevels: keyLevels,
       trendChannel: trendChannel,
+      binanceAvailable: binanceAvailable,
     );
   }
 

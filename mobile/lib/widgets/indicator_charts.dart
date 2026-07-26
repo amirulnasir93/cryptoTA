@@ -85,7 +85,6 @@ class RsiChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return _Panel(
       title: 'RSI',
       height: 120,
@@ -100,8 +99,8 @@ class RsiChart extends StatelessWidget {
           borderData: FlBorderData(show: true, border: Border.all(color: Theme.of(context).dividerColor)),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
-              HorizontalLine(y: 70, color: scheme.onSurfaceVariant.withValues(alpha: 0.3), strokeWidth: 1, dashArray: [4, 4]),
-              HorizontalLine(y: 30, color: scheme.onSurfaceVariant.withValues(alpha: 0.3), strokeWidth: 1, dashArray: [4, 4]),
+              HorizontalLine(y: 70, color: downColor.withValues(alpha: 0.5), strokeWidth: 1, dashArray: [4, 4]),
+              HorizontalLine(y: 30, color: upColor.withValues(alpha: 0.5), strokeWidth: 1, dashArray: [4, 4]),
             ],
           ),
           lineTouchData: const LineTouchData(enabled: false),
@@ -127,7 +126,6 @@ class StochRsiChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return _Panel(
       title: 'Stochastic RSI',
       subtitle: '%K (solid) / %D (dashed)',
@@ -143,8 +141,8 @@ class StochRsiChart extends StatelessWidget {
           borderData: FlBorderData(show: true, border: Border.all(color: Theme.of(context).dividerColor)),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
-              HorizontalLine(y: 80, color: scheme.onSurfaceVariant.withValues(alpha: 0.3), strokeWidth: 1, dashArray: [4, 4]),
-              HorizontalLine(y: 20, color: scheme.onSurfaceVariant.withValues(alpha: 0.3), strokeWidth: 1, dashArray: [4, 4]),
+              HorizontalLine(y: 80, color: downColor.withValues(alpha: 0.5), strokeWidth: 1, dashArray: [4, 4]),
+              HorizontalLine(y: 20, color: upColor.withValues(alpha: 0.5), strokeWidth: 1, dashArray: [4, 4]),
             ],
           ),
           lineTouchData: const LineTouchData(enabled: false),

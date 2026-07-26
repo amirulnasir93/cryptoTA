@@ -20,6 +20,7 @@ class TechnicalAnalysisTab extends StatefulWidget {
 
 class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
   String _interval = '1d';
+  ChartSource _source = ChartSource.coingecko;
   late Future<TokenAnalysisResult> _future;
   late CandlesticksController _chartController;
   int _totalPoints = 0;
@@ -41,20 +42,33 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
   }
 
   void _load() {
-    _future = context.read<AppRepository>().getTokenAnalysis(widget.tokenId, _interval);
+    _future = context.read<AppRepository>().getTokenAnalysis(widget.tokenId, _interval, source: _source);
   }
 
-  void _setInterval(String interval) {
+  void _resetChart() {
     // Old candles' index range means nothing against a completely different
     // series -- a fresh controller (not just a reset viewport) also clears
     // its cached candle count/chart width from the previous data.
     _chartController.removeListener(_onViewportChanged);
     _chartController.dispose();
     _chartController = CandlesticksController()..addListener(_onViewportChanged);
+    _visibleStart = 0;
+    _visibleEnd = 0;
+    _totalPoints = 0;
+  }
+
+  void _setInterval(String interval) {
     setState(() {
+      _resetChart();
       _interval = interval;
-      _visibleStart = 0;
-      _visibleEnd = 0;
+      _load();
+    });
+  }
+
+  void _setSource(ChartSource source) {
+    setState(() {
+      _resetChart();
+      _source = source;
       _load();
     });
   }
@@ -74,6 +88,33 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
       _visibleStart = start;
       _visibleEnd = end;
     });
+  }
+
+  Widget _buildSourceToggle() {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SegmentedButton<ChartSource>(
+          segments: const [
+            ButtonSegment(value: ChartSource.coingecko, label: Text('CoinGecko')),
+            ButtonSegment(value: ChartSource.binance, label: Text('Binance')),
+          ],
+          selected: {_source},
+          showSelectedIcon: false,
+          onSelectionChanged: (s) => _setSource(s.first),
+          style: const ButtonStyle(visualDensity: VisualDensity.compact),
+        ),
+        if (_source == ChartSource.binance) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Real exchange candles, no 365-day history cap.',
+            style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -113,7 +154,16 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(result.reason ?? 'Unavailable', textAlign: TextAlign.center),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (result.binanceAvailable) ...[
+                          _buildSourceToggle(),
+                          const SizedBox(height: 16),
+                        ],
+                        Text(result.reason ?? 'Unavailable', textAlign: TextAlign.center),
+                      ],
+                    ),
                   ),
                 );
               }
@@ -128,6 +178,10 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
               return ListView(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, bottomSafePadding(context)),
                 children: [
+                  if (result.binanceAvailable) ...[
+                    _buildSourceToggle(),
+                    const SizedBox(height: 10),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

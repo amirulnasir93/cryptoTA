@@ -359,23 +359,46 @@ class _CatalystSectionState extends State<_CatalystSection> {
   final _descriptionController = TextEditingController();
   DateTime? _date;
   String _type = 'unlock';
+  bool _saving = false;
 
   Future<void> _add() async {
-    if (_date == null || _descriptionController.text.trim().isEmpty) return;
-    await context.read<AppRepository>().createCatalyst({
-      'ticker': widget.token.ticker,
-      'eventDate': _date!.toIso8601String(),
-      'eventType': _type,
-      'description': _descriptionController.text.trim(),
-    });
-    _descriptionController.clear();
-    setState(() => _date = null);
-    widget.onChanged();
+    if (_date == null || _descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_date == null ? 'Pick a date first.' : 'Description is required.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await context.read<AppRepository>().createCatalyst({
+        'ticker': widget.token.ticker,
+        'eventDate': _date!.toIso8601String(),
+        'eventType': _type,
+        'description': _descriptionController.text.trim(),
+      });
+      _descriptionController.clear();
+      if (mounted) setState(() => _date = null);
+      widget.onChanged();
+    } catch (e) {
+      debugPrint('createCatalyst failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not add catalyst: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _delete(Catalyst c) async {
-    await context.read<AppRepository>().deleteCatalyst(c.id);
-    widget.onChanged();
+    try {
+      await context.read<AppRepository>().deleteCatalyst(c.id);
+      widget.onChanged();
+    } catch (e) {
+      debugPrint('deleteCatalyst failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not remove catalyst: $e')));
+      }
+    }
   }
 
   @override
@@ -392,16 +415,22 @@ class _CatalystSectionState extends State<_CatalystSection> {
               child: Text('None recorded.', style: TextStyle(color: scheme.onSurfaceVariant)),
             )
           else
-            ...widget.token.catalysts.map(
-              (c) => ListTile(
+            ...widget.token.catalysts.map((c) {
+              // tryParse rather than parse -- a row typed directly into the
+              // Sheet, or one written before the apostrophe-text fix below,
+              // may not be strict ISO-8601; fall back to the raw string
+              // rather than crashing this tile's build.
+              final parsed = DateTime.tryParse(c.eventDate);
+              final dateLabel = parsed != null ? parsed.toLocal().toString().split(' ').first : c.eventDate;
+              return ListTile(
                 title: Text(c.description),
-                subtitle: Text('${DateTime.parse(c.eventDate).toLocal().toString().split(' ').first} · ${c.eventType}'),
+                subtitle: Text('$dateLabel · ${c.eventType}'),
                 trailing: IconButton(
                   icon: Icon(Icons.delete_outline_rounded, color: scheme.onSurfaceVariant),
                   onPressed: () => _delete(c),
                 ),
-              ),
-            ),
+              );
+            }),
           const Divider(height: 24, indent: 12, endIndent: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -443,7 +472,19 @@ class _CatalystSectionState extends State<_CatalystSection> {
                 const SizedBox(height: 10),
                 TextField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description')),
                 const SizedBox(height: 10),
-                Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: _add, child: const Text('Add catalyst'))),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _add,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Add catalyst'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -453,9 +494,12 @@ class _CatalystSectionState extends State<_CatalystSection> {
   }
 }
 
-/// Editing project name/chain/CoinGecko id/cluster -- notes and labels have
-/// their own inline editors on the Overview tab already, so this only covers
-/// the fields that had no editing path at all on mobile before.
+/// Editing project name/chain/CoinGecko id/cluster/Binance symbol -- notes
+/// and labels have their own inline editors on the Overview tab already, so
+/// this only covers the fields that had no editing path at all on mobile
+/// before. Binance symbol is also the only place to see whether one's set at
+/// all -- there's no read-only display of it elsewhere, mirroring how
+/// CoinGecko ID works (opening Edit is how you check the current value).
 class EditTokenDialog extends StatefulWidget {
   final TokenDetail token;
   const EditTokenDialog({super.key, required this.token});
@@ -467,6 +511,7 @@ class EditTokenDialog extends StatefulWidget {
 class _EditTokenDialogState extends State<EditTokenDialog> {
   late final _projectName = TextEditingController(text: widget.token.projectName ?? '');
   late final _coingeckoQuery = TextEditingController(text: widget.token.coingeckoId ?? '');
+  late final _binanceSymbol = TextEditingController(text: widget.token.binanceSymbol ?? '');
   late String _chain = widget.token.primaryChain ?? '';
   late String _cluster = widget.token.cluster ?? '';
   List<String> _clusterOptions = [];
@@ -508,6 +553,7 @@ class _EditTokenDialogState extends State<EditTokenDialog> {
         'projectName': _projectName.text.trim().isEmpty ? null : _projectName.text.trim(),
         'primaryChain': _chain.trim().isEmpty ? null : _chain.trim(),
         'coingeckoId': _coingeckoId ?? (_coingeckoQuery.text.trim().isEmpty ? null : _coingeckoQuery.text.trim()),
+        'binanceSymbol': _binanceSymbol.text.trim().isEmpty ? null : _binanceSymbol.text.trim().toUpperCase(),
         'cluster': _cluster.trim().isEmpty ? null : _cluster.trim(),
       });
       if (mounted) Navigator.pop(context, true);
@@ -568,6 +614,16 @@ class _EditTokenDialogState extends State<EditTokenDialog> {
                     ),
                   ),
                 ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _binanceSymbol,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Binance symbol (optional)',
+                  hintText: 'e.g. BTCUSDT',
+                  helperText: 'Enables the Binance chart source, with no 365-day history cap.',
+                ),
+              ),
               const SizedBox(height: 10),
               SearchableField(
                 label: 'Cluster',

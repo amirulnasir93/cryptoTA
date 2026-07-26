@@ -264,7 +264,13 @@ export class Repository {
   }): Promise<void> {
     await this.sheets.appendRow(catalystsTab, [
       input.ticker.toUpperCase(),
-      input.eventDate,
+      // Leading apostrophe forces Sheets (valueInputOption=USER_ENTERED) to
+      // store this as literal text instead of auto-detecting a date and
+      // silently rewriting it to the spreadsheet's locale format on
+      // read-back (e.g. "15/8/2026" on a non-US-locale sheet) -- which a
+      // strict date parser elsewhere could misread or reject. Sheets strips
+      // the apostrophe itself; it never appears in the stored value.
+      `'${input.eventDate}`,
       input.eventType,
       input.description,
       input.sizePctOfSupply?.toString() ?? "",

@@ -109,8 +109,10 @@ List<Candle> _regroupCandles(List<Candle> candles, Object Function(int ts) keyFn
 }
 
 /// Chunks consecutive candles into groups of `size` -- for 2d/3d, which have
-/// no natural calendar alignment, unlike week/month.
-List<Candle> _chunkCandles(List<Candle> candles, int size) {
+/// no natural calendar alignment, unlike week/month. Also reused directly by
+/// the Binance klines path (connectors/binance_compatible.dart) for "2d",
+/// the one interval Binance has no native granularity for.
+List<Candle> chunkCandles(List<Candle> candles, int size) {
   final out = <Candle>[];
   for (var i = 0; i < candles.length; i += size) {
     final chunk = candles.sublist(i, (i + size).clamp(0, candles.length));
@@ -144,9 +146,9 @@ List<Candle> buildCandles(
     case "1d":
       return _groupTicksByKey(timestamps, closes, volumes, _dayKey);
     case "2d":
-      return _chunkCandles(_groupTicksByKey(timestamps, closes, volumes, _dayKey), 2);
+      return chunkCandles(_groupTicksByKey(timestamps, closes, volumes, _dayKey), 2);
     case "3d":
-      return _chunkCandles(_groupTicksByKey(timestamps, closes, volumes, _dayKey), 3);
+      return chunkCandles(_groupTicksByKey(timestamps, closes, volumes, _dayKey), 3);
     case "1w":
       return _regroupCandles(_groupTicksByKey(timestamps, closes, volumes, _dayKey), isoWeekKey);
     case "1M":
