@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'app_config.dart';
 import 'google_auth.dart';
@@ -44,27 +45,39 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> {
-  bool _checkingSignIn = true;
-  bool _signedIn = false;
+  // The one-time "is there already a signed-in session?" check only ever
+  // happens once per app launch -- once _initialCheckComplete flips true, it
+  // never resets. Without that guard, EVERY AppConfig change (saving the
+  // Sheet ID, the CoinGecko key, even re-saving the same Web Client ID) would
+  // re-run this check and briefly swap SettingsScreen out for a loading
+  // spinner and back, tearing down and recreating its State -- which is
+  // exactly what made "Save Web Client ID" look like it did nothing: the
+  // value *was* saved, but the "saved" confirmation text lived on the old,
+  // now-destroyed SettingsScreen instance.
+  bool _initialCheckComplete = false;
   bool _restoreAttempted = false;
+  bool _signedIn = false;
 
-  // GoogleSignIn.initialize needs the Web Client ID from AppConfig, which
-  // isn't available until AppConfig finishes loading -- so the restore
-  // attempt can't happen in initState like a simpler check could; it's
-  // triggered once from build() as soon as both are ready.
   Future<void> _restoreSignIn(String serverClientId) async {
-    _restoreAttempted = true;
-    final account = await GoogleAuthService.instance.restoreSignIn(serverClientId);
+    GoogleSignInAccount? account;
+    try {
+      account = await GoogleAuthService.instance.restoreSignIn(serverClientId);
+    } catch (_) {
+      account = null;
+    }
     if (mounted) {
       setState(() {
         _signedIn = account != null;
-        _checkingSignIn = false;
+        _initialCheckComplete = true;
       });
     }
   }
 
   void _onConfigured() {
-    setState(() => _signedIn = GoogleAuthService.instance.isSignedIn);
+    setState(() {
+      _signedIn = GoogleAuthService.instance.isSignedIn;
+      _initialCheckComplete = true;
+    });
   }
 
   @override
@@ -74,18 +87,27 @@ class _AppRootState extends State<AppRoot> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // No Web Client ID yet: there's nothing to silently restore, and first
-    // run needs it anyway -- skip straight to setup instead of waiting.
-    if (config.serverClientId == null || config.serverClientId!.isEmpty) {
-      return SettingsScreen(firstRun: true, onConfigured: _onConfigured);
-    }
-
-    if (!_restoreAttempted) {
-      _restoreSignIn(config.serverClientId!);
-    }
-    if (_checkingSignIn) {
+    if (!_initialCheckComplete) {
+      // _restoreAttempted only guards *triggering* the check once; the
+      // spinner itself stays up on every rebuild until _initialCheckComplete
+      // flips, so an unrelated rebuild arriving mid-check can't fall through
+      // to Setup early.
+      if (!_restoreAttempted) {
+        _restoreAttempted = true;
+        final serverClientId = config.serverClientId;
+        if (serverClientId == null || serverClientId.isEmpty) {
+          // Nothing to silently restore -- mark the check done after this
+          // frame (not synchronously mid-build) and fall through to Setup.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _initialCheckComplete = true);
+          });
+        } else {
+          _restoreSignIn(serverClientId);
+        }
+      }
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
     if (!_signedIn || !config.isConfigured) {
       return SettingsScreen(firstRun: true, onConfigured: _onConfigured);
     }
