@@ -4,7 +4,8 @@ A local-first web app for tracking a crypto token watchlist: add/archive/remove
 tokens, group them into overlapping labels, and see a metrics dashboard (both
 portfolio-wide and per-token) built from CoinGecko, DexScreener, DefiLlama,
 Binance and MEXC. Optionally keeps itself in sync both ways with a Google
-Sheet.
+Sheet. A standalone Android app (`mobile/`) is also available — see
+[Mobile app](#mobile-app-android) below.
 
 It grew out of the `Skills/token-watchlist-analyst` Claude Code Skill in this
 repo — that Skill's cross-source divergence gating, ticker-collision traps and
@@ -86,6 +87,7 @@ packages/
   shared/             TypeScript types shared by backend and frontend
   backend/            Fastify API, Prisma schema, connectors, jobs
   frontend/           React app (Dashboard / Watchlist / Token detail / Labels)
+mobile/               Flutter Android app — see below
 docs/                 architecture, Sheets setup, deploy notes
 ```
 
@@ -95,8 +97,19 @@ docs/                 architecture, Sheets setup, deploy notes
 npm test   # gating logic + sync-decision logic, run with vitest
 ```
 
-## Flutter app (later)
+## Mobile app (Android)
 
-Not built yet. The backend is a plain REST/JSON API with an OpenAPI schema at
-`/docs/json`, so a Flutter client can be hand-written or generated against it
-without backend changes, once that's next up.
+`mobile/` is a Flutter app that deliberately does **not** talk to the backend
+above at all — it needs no server running anywhere. It reads and writes the
+same Google Sheet directly (signed in as you, not the service account), and
+pulls prices straight from CoinGecko/DexScreener/Binance/MEXC, computing all
+the same indicators on-device. The web app and the phone stay in sync only
+through the shared Sheet, not a live connection to each other.
+
+One-time setup (Google sign-in needs its own OAuth clients, separate from the
+web app's service account): see `docs/MOBILE_SHEETS_SETUP.md`. Build with:
+
+```bash
+cd mobile
+flutter build apk --release --split-per-abi
+```
