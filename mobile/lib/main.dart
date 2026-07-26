@@ -5,6 +5,7 @@ import 'app_config.dart';
 import 'google_auth.dart';
 import 'sheets_client.dart';
 import 'repository.dart';
+import 'theme.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/watchlist_screen.dart';
 import 'screens/labels_screen.dart';
@@ -24,12 +25,7 @@ class CryptoWatchlistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Crypto Watchlist',
-      theme: ThemeData(colorSchemeSeed: Colors.blue, brightness: Brightness.light, useMaterial3: true),
-      darkTheme: ThemeData(colorSchemeSeed: Colors.blue, brightness: Brightness.dark, useMaterial3: true),
-      home: const AppRoot(),
-    );
+    return const AppRoot();
   }
 }
 
@@ -80,11 +76,24 @@ class _AppRootState extends State<AppRoot> {
     });
   }
 
+  static final _theme = buildLightTheme();
+  static final _darkTheme = buildDarkTheme();
+
+  MaterialApp _shell({required Widget home}) {
+    return MaterialApp(
+      title: 'Crypto Watchlist',
+      debugShowCheckedModeBanner: false,
+      theme: _theme,
+      darkTheme: _darkTheme,
+      home: home,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = context.watch<AppConfig>();
     if (!config.loaded) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return _shell(home: const Scaffold(body: Center(child: CircularProgressIndicator())));
     }
 
     if (!_initialCheckComplete) {
@@ -105,16 +114,26 @@ class _AppRootState extends State<AppRoot> {
           _restoreSignIn(serverClientId);
         }
       }
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return _shell(home: const Scaffold(body: Center(child: CircularProgressIndicator())));
     }
 
     if (!_signedIn || !config.isConfigured) {
-      return SettingsScreen(firstRun: true, onConfigured: _onConfigured);
+      return _shell(home: SettingsScreen(firstRun: true, onConfigured: _onConfigured));
     }
+    // Provider<AppRepository> wraps MaterialApp itself here (not just
+    // AppShell) so its Navigator's PUSHED routes -- e.g. TokenDetailScreen,
+    // reached via Navigator.push, not a child of whatever screen triggered
+    // it -- still have this Provider as an ancestor. A push adds its route
+    // as a new sibling entry in the Navigator's own Overlay, not as a
+    // descendant of the pushing widget, so a Provider that only wraps
+    // AppShell (the first/root route's content) is invisible to every route
+    // pushed afterward -- confirmed live: this exact structure produced
+    // "Could not find the correct Provider<AppRepository>" when opening a
+    // token's detail screen.
     return Provider<AppRepository>(
       key: ValueKey(config.sheetId),
       create: (_) => AppRepository(SheetsClient(config.sheetId!), coingeckoApiKey: config.coingeckoApiKey),
-      child: const AppShell(),
+      child: _shell(home: const AppShell()),
     );
   }
 }

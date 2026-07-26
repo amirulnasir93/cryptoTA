@@ -43,6 +43,7 @@ class TokenDeployment {
 class MetricSnapshot {
   final int id;
   final String fetchedAt;
+  final String? imageUrl;
   final double? priceCoingecko;
   final double? priceDexscreener;
   final double? priceBinance;
@@ -52,11 +53,14 @@ class MetricSnapshot {
   final double? fdv;
   final double? volume24h;
   final double? volumeToMcap;
+  final double? change1hPct;
   final double? change24hPct;
   final double? change7dPct;
   final double? change30dPct;
   final double? ath;
   final double? drawdownFromAthPct;
+  final double? atl;
+  final double? aboveAtlPct;
   final double? circulatingSupply;
   final double? totalSupply;
   final double? floatPct;
@@ -69,6 +73,7 @@ class MetricSnapshot {
   MetricSnapshot({
     required this.id,
     required this.fetchedAt,
+    this.imageUrl,
     this.priceCoingecko,
     this.priceDexscreener,
     this.priceBinance,
@@ -78,11 +83,14 @@ class MetricSnapshot {
     this.fdv,
     this.volume24h,
     this.volumeToMcap,
+    this.change1hPct,
     this.change24hPct,
     this.change7dPct,
     this.change30dPct,
     this.ath,
     this.drawdownFromAthPct,
+    this.atl,
+    this.aboveAtlPct,
     this.circulatingSupply,
     this.totalSupply,
     this.floatPct,
@@ -96,6 +104,7 @@ class MetricSnapshot {
   factory MetricSnapshot.fromJson(Map<String, dynamic> json) => MetricSnapshot(
         id: json['id'] as int,
         fetchedAt: json['fetchedAt'] as String,
+        imageUrl: json['imageUrl'] as String?,
         priceCoingecko: _asDouble(json['priceCoingecko']),
         priceDexscreener: _asDouble(json['priceDexscreener']),
         priceBinance: _asDouble(json['priceBinance']),
@@ -105,11 +114,14 @@ class MetricSnapshot {
         fdv: _asDouble(json['fdv']),
         volume24h: _asDouble(json['volume24h']),
         volumeToMcap: _asDouble(json['volumeToMcap']),
+        change1hPct: _asDouble(json['change1hPct']),
         change24hPct: _asDouble(json['change24hPct']),
         change7dPct: _asDouble(json['change7dPct']),
         change30dPct: _asDouble(json['change30dPct']),
         ath: _asDouble(json['ath']),
         drawdownFromAthPct: _asDouble(json['drawdownFromAthPct']),
+        atl: _asDouble(json['atl']),
+        aboveAtlPct: _asDouble(json['aboveAtlPct']),
         circulatingSupply: _asDouble(json['circulatingSupply']),
         totalSupply: _asDouble(json['totalSupply']),
         floatPct: _asDouble(json['floatPct']),
@@ -600,8 +612,12 @@ class TokenInsightResult {
   final double? sentimentUpPct;
   final double? sentimentDownPct;
   final TokenInsightLinks? links;
+  final int? watchlistPortfolioUsers;
   final int? redditSubscribers;
   final int? telegramUserCount;
+  final double? redditAveragePosts48h;
+  final double? redditAverageComments48h;
+  final int? redditAccountsActive48h;
   final int? stars;
   final int? forks;
   final int? contributors;
@@ -616,8 +632,12 @@ class TokenInsightResult {
         sentimentUpPct = null,
         sentimentDownPct = null,
         links = null,
+        watchlistPortfolioUsers = null,
         redditSubscribers = null,
         telegramUserCount = null,
+        redditAveragePosts48h = null,
+        redditAverageComments48h = null,
+        redditAccountsActive48h = null,
         stars = null,
         forks = null,
         contributors = null,
@@ -634,8 +654,12 @@ class TokenInsightResult {
     required this.sentimentUpPct,
     required this.sentimentDownPct,
     required this.links,
+    required this.watchlistPortfolioUsers,
     required this.redditSubscribers,
     required this.telegramUserCount,
+    required this.redditAveragePosts48h,
+    required this.redditAverageComments48h,
+    required this.redditAccountsActive48h,
     required this.stars,
     required this.forks,
     required this.contributors,
@@ -655,8 +679,12 @@ class TokenInsightResult {
       sentimentUpPct: _asDouble(json['sentimentUpPct']),
       sentimentDownPct: _asDouble(json['sentimentDownPct']),
       links: TokenInsightLinks.fromJson(json['links'] as Map<String, dynamic>),
+      watchlistPortfolioUsers: _asInt(json['watchlistPortfolioUsers']),
       redditSubscribers: _asInt(community['redditSubscribers']),
       telegramUserCount: _asInt(community['telegramUserCount']),
+      redditAveragePosts48h: _asDouble(community['redditAveragePosts48h']),
+      redditAverageComments48h: _asDouble(community['redditAverageComments48h']),
+      redditAccountsActive48h: _asInt(community['redditAccountsActive48h']),
       stars: _asInt(developer['stars']),
       forks: _asInt(developer['forks']),
       contributors: _asInt(developer['pullRequestContributors']),

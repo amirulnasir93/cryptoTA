@@ -59,6 +59,10 @@ export interface MetricSnapshot {
   id: number;
   tokenId: number;
   fetchedAt: string;
+  // Optional -- populated by the standalone web/mobile clients' own
+  // refreshPrices; the self-hosted backend's existing refresh job doesn't
+  // set these, so they're absent rather than null there.
+  imageUrl?: string | null;
   priceCoingecko: number | null;
   priceDexscreener: number | null;
   priceBinance: number | null;
@@ -68,11 +72,14 @@ export interface MetricSnapshot {
   fdv: number | null;
   volume24h: number | null;
   volumeToMcap: number | null;
+  change1hPct?: number | null;
   change24hPct: number | null;
   change7dPct: number | null;
   change30dPct: number | null;
   ath: number | null;
   drawdownFromAthPct: number | null;
+  atl?: number | null;
+  aboveAtlPct?: number | null;
   circulatingSupply: number | null;
   totalSupply: number | null;
   floatPct: number | null;
@@ -234,6 +241,10 @@ export interface TokenInsightLinks {
 export interface TokenInsightCommunity {
   redditSubscribers: number | null;
   telegramUserCount: number | null;
+  // Actual engagement, not just a (often stale) subscriber count.
+  redditAveragePosts48h?: number | null;
+  redditAverageComments48h?: number | null;
+  redditAccountsActive48h?: number | null;
 }
 
 export interface TokenInsightDeveloper {
@@ -255,6 +266,8 @@ export interface TokenInsight {
   marketCapRank: number | null;
   sentimentUpPct: number | null;
   sentimentDownPct: number | null;
+  // How many CoinGecko users have this coin on their own watchlist.
+  watchlistPortfolioUsers?: number | null;
   links: TokenInsightLinks;
   community: TokenInsightCommunity;
   developer: TokenInsightDeveloper;

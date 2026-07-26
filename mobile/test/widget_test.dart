@@ -12,6 +12,15 @@ void main() {
     final config = AppConfig();
     await config.load();
 
+    // The redesigned Settings screen's card-based sections take noticeably
+    // more vertical space than the old compact layout -- a tall test surface
+    // keeps every section built (Flutter's ListView only builds children
+    // near the viewport) without needing to simulate scrolling.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     // SettingsScreen itself never touches Google Sign-In's platform channels
     // unless a button is tapped -- isSignedIn/account are plain local getters
     // -- so this renders safely without a real device or platform mocking,

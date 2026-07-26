@@ -33,6 +33,7 @@ class _InsightTabState extends State<InsightTab> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return FutureBuilder<TokenInsightResult>(
       future: _future,
       builder: (context, snapshot) {
@@ -59,54 +60,80 @@ class _InsightTabState extends State<InsightTab> {
         ];
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, bottomSafePadding(context)),
           children: [
-            Text(
-              "Sourced from CoinGecko's public project data",
-              style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
-            ),
-            const SizedBox(height: 8),
             if (insight.description != null && insight.description!.isNotEmpty) ...[
-              Text(insight.description!.replaceAll('&nbsp;', ' ')),
-              const SizedBox(height: 12),
+              AppCard(child: Text(insight.description!.replaceAll('&nbsp;', ' '), style: const TextStyle(height: 1.5))),
+              const SizedBox(height: 16),
             ],
             if (insight.categories.isNotEmpty) ...[
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: insight.categories
-                    .take(12)
-                    .map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 11)), padding: EdgeInsets.zero))
-                    .toList(),
+                children: insight.categories.take(12).map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 11)))).toList(),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
             if (links.isNotEmpty) ...[
               Wrap(
-                spacing: 16,
-                runSpacing: 4,
+                spacing: 10,
+                runSpacing: 10,
                 children: links
-                    .map((l) => InkWell(onTap: () => _open(l.$2), child: Text(l.$1, style: const TextStyle(color: Colors.blue))))
+                    .map(
+                      (l) => ActionChip(
+                        avatar: Icon(Icons.open_in_new_rounded, size: 14, color: scheme.primary),
+                        label: Text(l.$1),
+                        onPressed: () => _open(l.$2),
+                      ),
+                    )
                     .toList(),
               ),
               const SizedBox(height: 16),
             ],
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 2.1,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
               children: [
-                if (insight.marketCapRank != null) StatTile(label: 'Market cap rank', value: Text('#${insight.marketCapRank}')),
+                if (insight.marketCapRank != null)
+                  StatTile(label: 'Market cap rank', icon: Icons.leaderboard_rounded, value: Text('#${insight.marketCapRank}')),
                 if (insight.sentimentUpPct != null)
-                  StatTile(label: 'Sentiment', value: Text('${insight.sentimentUpPct}% up / ${insight.sentimentDownPct}% down')),
+                  StatTile(
+                    label: 'Sentiment',
+                    icon: Icons.thumbs_up_down_rounded,
+                    value: Text('${insight.sentimentUpPct}% / ${insight.sentimentDownPct}%'),
+                  ),
+                if (insight.watchlistPortfolioUsers != null)
+                  StatTile(
+                    label: 'CoinGecko watchlists',
+                    icon: Icons.visibility_rounded,
+                    value: Text('${insight.watchlistPortfolioUsers}'),
+                  ),
                 if (insight.redditSubscribers != null)
-                  StatTile(label: 'Reddit subs', value: Text('${insight.redditSubscribers}')),
+                  StatTile(label: 'Reddit subs', icon: Icons.forum_rounded, value: Text('${insight.redditSubscribers}')),
+                if (insight.redditAccountsActive48h != null)
+                  StatTile(
+                    label: 'Reddit active (48h)',
+                    icon: Icons.groups_rounded,
+                    value: Text('${insight.redditAccountsActive48h}'),
+                  ),
+                if (insight.redditAveragePosts48h != null)
+                  StatTile(
+                    label: 'Reddit posts (48h avg)',
+                    icon: Icons.article_rounded,
+                    value: Text(insight.redditAveragePosts48h!.toStringAsFixed(1)),
+                  ),
                 if (insight.telegramUserCount != null)
-                  StatTile(label: 'Telegram members', value: Text('${insight.telegramUserCount}')),
-                if (insight.stars != null) StatTile(label: 'GitHub stars', value: Text('${insight.stars}')),
-                if (insight.forks != null) StatTile(label: 'GitHub forks', value: Text('${insight.forks}')),
-                if (insight.contributors != null) StatTile(label: 'Contributors', value: Text('${insight.contributors}')),
+                  StatTile(label: 'Telegram members', icon: Icons.send_rounded, value: Text('${insight.telegramUserCount}')),
+                if (insight.stars != null) StatTile(label: 'GitHub stars', icon: Icons.star_rounded, value: Text('${insight.stars}')),
+                if (insight.forks != null) StatTile(label: 'GitHub forks', icon: Icons.call_split_rounded, value: Text('${insight.forks}')),
+                if (insight.contributors != null)
+                  StatTile(label: 'Contributors', icon: Icons.group_rounded, value: Text('${insight.contributors}')),
                 if (insight.commitCount4Weeks != null)
-                  StatTile(label: 'Commits (4wk)', value: Text('${insight.commitCount4Weeks}')),
+                  StatTile(label: 'Commits (4wk)', icon: Icons.commit_rounded, value: Text('${insight.commitCount4Weeks}')),
               ],
             ),
           ],

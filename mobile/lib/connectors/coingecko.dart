@@ -6,44 +6,56 @@ const _cg = "https://api.coingecko.com/api/v3";
 
 class CoingeckoMarket {
   final String id;
+  final String? imageUrl;
   final double? currentPrice;
   final double? marketCap;
   final double? fullyDilutedValuation;
   final double? totalVolume;
+  final double? change1hPct;
   final double? change24hPct;
   final double? change7dPct;
   final double? change30dPct;
   final double? ath;
   final double? athChangePct;
+  final double? atl;
+  final double? atlChangePct;
   final double? circulatingSupply;
   final double? totalSupply;
 
   CoingeckoMarket({
     required this.id,
+    this.imageUrl,
     this.currentPrice,
     this.marketCap,
     this.fullyDilutedValuation,
     this.totalVolume,
+    this.change1hPct,
     this.change24hPct,
     this.change7dPct,
     this.change30dPct,
     this.ath,
     this.athChangePct,
+    this.atl,
+    this.atlChangePct,
     this.circulatingSupply,
     this.totalSupply,
   });
 
   factory CoingeckoMarket.fromJson(Map<String, dynamic> j) => CoingeckoMarket(
         id: j['id'] as String,
+        imageUrl: j['image'] as String?,
         currentPrice: (j['current_price'] as num?)?.toDouble(),
         marketCap: (j['market_cap'] as num?)?.toDouble(),
         fullyDilutedValuation: (j['fully_diluted_valuation'] as num?)?.toDouble(),
         totalVolume: (j['total_volume'] as num?)?.toDouble(),
+        change1hPct: (j['price_change_percentage_1h_in_currency'] as num?)?.toDouble(),
         change24hPct: (j['price_change_percentage_24h_in_currency'] as num?)?.toDouble(),
         change7dPct: (j['price_change_percentage_7d_in_currency'] as num?)?.toDouble(),
         change30dPct: (j['price_change_percentage_30d_in_currency'] as num?)?.toDouble(),
         ath: (j['ath'] as num?)?.toDouble(),
         athChangePct: (j['ath_change_percentage'] as num?)?.toDouble(),
+        atl: (j['atl'] as num?)?.toDouble(),
+        atlChangePct: (j['atl_change_percentage'] as num?)?.toDouble(),
         circulatingSupply: (j['circulating_supply'] as num?)?.toDouble(),
         totalSupply: (j['total_supply'] as num?)?.toDouble(),
       );
@@ -55,7 +67,7 @@ Future<Map<String, CoingeckoMarket>> fetchCoingeckoMarkets(List<String> ids, {St
   final params = {
     'vs_currency': 'usd',
     'ids': ids.join(','),
-    'price_change_percentage': '24h,7d,30d',
+    'price_change_percentage': '1h,24h,7d,30d',
     'sparkline': 'false',
   };
   final uri = Uri.parse('$_cg/coins/markets').replace(queryParameters: params);
@@ -127,8 +139,12 @@ class CoingeckoCoinDetail {
   final String? telegramChannel;
   final String? subredditUrl;
   final List<String> githubRepos;
+  final int? watchlistPortfolioUsers;
   final int? redditSubscribers;
   final int? telegramUserCount;
+  final double? redditAveragePosts48h;
+  final double? redditAverageComments48h;
+  final int? redditAccountsActive48h;
   final int? stars;
   final int? forks;
   final int? subscribers;
@@ -151,8 +167,12 @@ class CoingeckoCoinDetail {
     this.telegramChannel,
     this.subredditUrl,
     this.githubRepos = const [],
+    this.watchlistPortfolioUsers,
     this.redditSubscribers,
     this.telegramUserCount,
+    this.redditAveragePosts48h,
+    this.redditAverageComments48h,
+    this.redditAccountsActive48h,
     this.stars,
     this.forks,
     this.subscribers,
@@ -181,8 +201,12 @@ class CoingeckoCoinDetail {
       subredditUrl: links?['subreddit_url'] as String?,
       githubRepos:
           ((links?['repos_url'] as Map<String, dynamic>?)?['github'] as List?)?.cast<String>() ?? [],
+      watchlistPortfolioUsers: (j['watchlist_portfolio_users'] as num?)?.toInt(),
       redditSubscribers: (community?['reddit_subscribers'] as num?)?.toInt(),
       telegramUserCount: (community?['telegram_channel_user_count'] as num?)?.toInt(),
+      redditAveragePosts48h: (community?['reddit_average_posts_48h'] as num?)?.toDouble(),
+      redditAverageComments48h: (community?['reddit_average_comments_48h'] as num?)?.toDouble(),
+      redditAccountsActive48h: (community?['reddit_accounts_active_48h'] as num?)?.toInt(),
       stars: (developer?['stars'] as num?)?.toInt(),
       forks: (developer?['forks'] as num?)?.toInt(),
       subscribers: (developer?['subscribers'] as num?)?.toInt(),

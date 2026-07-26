@@ -55,7 +55,9 @@ export function InsightPanel({ insight }: { insight: TokenInsightResult }) {
     insight.developer.forks != null ||
     insight.developer.commitCount4Weeks != null;
   const hasCommunityData =
-    insight.community.redditSubscribers != null || insight.community.telegramUserCount != null;
+    insight.community.redditSubscribers != null ||
+    insight.community.telegramUserCount != null ||
+    insight.community.redditAccountsActive48h != null;
   const hasSentiment = insight.sentimentUpPct != null && insight.sentimentDownPct != null;
 
   return (
@@ -102,7 +104,7 @@ export function InsightPanel({ insight }: { insight: TokenInsightResult }) {
         )}
       </div>
 
-      {(hasSentiment || insight.marketCapRank != null || insight.genesisDate) && (
+      {(hasSentiment || insight.marketCapRank != null || insight.genesisDate || insight.watchlistPortfolioUsers != null) && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {insight.marketCapRank != null && <Stat label="Market cap rank" value={`#${insight.marketCapRank}`} />}
           {insight.genesisDate && (
@@ -114,6 +116,9 @@ export function InsightPanel({ insight }: { insight: TokenInsightResult }) {
               value={`${insight.sentimentUpPct}% up`}
               sub={`${insight.sentimentDownPct}% down`}
             />
+          )}
+          {insight.watchlistPortfolioUsers != null && (
+            <Stat label="CoinGecko watchlists" value={formatCount(insight.watchlistPortfolioUsers)} />
           )}
         </div>
       )}
@@ -129,6 +134,12 @@ export function InsightPanel({ insight }: { insight: TokenInsightResult }) {
             )}
             {insight.community.telegramUserCount != null && (
               <Stat label="Telegram members" value={formatCount(insight.community.telegramUserCount)} compact />
+            )}
+            {insight.community.redditAccountsActive48h != null && (
+              <Stat label="Reddit active (48h)" value={formatCount(insight.community.redditAccountsActive48h)} compact />
+            )}
+            {insight.community.redditAveragePosts48h != null && (
+              <Stat label="Reddit posts (48h avg)" value={insight.community.redditAveragePosts48h.toFixed(1)} compact />
             )}
             {insight.developer.stars != null && (
               <Stat label="GitHub stars" value={formatCount(insight.developer.stars)} compact />

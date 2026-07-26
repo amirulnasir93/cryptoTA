@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../repository.dart';
 import '../connectors/coingecko.dart' show CoingeckoSearchResult;
+import '../constants.dart';
 import '../models.dart';
 import '../widgets/common.dart';
+import '../widgets/searchable_field.dart';
 import 'token_detail_screen.dart';
 
 class WatchlistScreen extends StatefulWidget {
@@ -53,7 +55,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
         content: const Text('This permanently deletes the token and its history.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
         ],
       ),
     );
@@ -65,13 +67,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Watchlist'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
+          preferredSize: const Size.fromHeight(56),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'active', label: Text('Active')),
@@ -88,7 +91,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           final created = await showDialog<bool>(context: context, builder: (_) => const AddTokenDialog());
           if (created == true) _reload();
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded),
       ),
       body: FutureBuilder<List<Token>>(
         future: _future,
@@ -101,49 +104,58 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           }
           final tokens = snapshot.data!;
           if (tokens.isEmpty) {
-            return Center(child: Text('No $_status tokens.', style: TextStyle(color: Theme.of(context).hintColor)));
+            return Center(
+              child: Text('No $_status tokens.', style: TextStyle(color: scheme.onSurfaceVariant)),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
               _reload();
               await _future;
             },
-            child: ListView.separated(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
               itemCount: tokens.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) {
                 final t = tokens[i];
                 final s = t.latestSnapshot;
-                return ListTile(
-                  title: Text(t.ticker, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text([t.projectName, t.primaryChain].where((v) => v != null && v.isNotEmpty).join(' · ')),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      DeltaText(value: s?.change24hPct),
-                      PopupMenuButton<String>(
-                        onSelected: (action) {
-                          switch (action) {
-                            case 'archive':
-                              _archive(t);
-                              break;
-                            case 'restore':
-                              _restore(t);
-                              break;
-                            case 'remove':
-                              _remove(t);
-                              break;
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          if (t.status == 'active') const PopupMenuItem(value: 'archive', child: Text('Archive')),
-                          if (t.status == 'archived') const PopupMenuItem(value: 'restore', child: Text('Restore')),
-                          const PopupMenuItem(value: 'remove', child: Text('Remove')),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Card(
+                    child: ListTile(
+                      leading: TickerAvatar(ticker: t.ticker, imageUrl: s?.imageUrl),
+                      title: Text(t.ticker, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text([t.projectName, t.primaryChain].where((v) => v != null && v.isNotEmpty).join(' · ')),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DeltaText(value: s?.change24hPct),
+                          PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert_rounded, color: scheme.onSurfaceVariant),
+                            onSelected: (action) {
+                              switch (action) {
+                                case 'archive':
+                                  _archive(t);
+                                  break;
+                                case 'restore':
+                                  _restore(t);
+                                  break;
+                                case 'remove':
+                                  _remove(t);
+                                  break;
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              if (t.status == 'active') const PopupMenuItem(value: 'archive', child: Text('Archive')),
+                              if (t.status == 'archived') const PopupMenuItem(value: 'restore', child: Text('Restore')),
+                              const PopupMenuItem(value: 'remove', child: Text('Remove')),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TokenDetailScreen(tokenId: t.id))),
+                    ),
                   ),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TokenDetailScreen(tokenId: t.id))),
                 );
               },
             ),
@@ -164,14 +176,26 @@ class AddTokenDialog extends StatefulWidget {
 class _AddTokenDialogState extends State<AddTokenDialog> {
   final _ticker = TextEditingController();
   final _projectName = TextEditingController();
-  final _chain = TextEditingController();
   final _coingeckoQuery = TextEditingController();
-  final _cluster = TextEditingController();
+  String _chain = '';
+  String _cluster = '';
+  List<String> _clusterOptions = [];
   CoingeckoSearchResult? _selectedCoin;
   List<CoingeckoSearchResult> _suggestions = [];
   Timer? _debounce;
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<AppRepository>().listTokens(status: 'all').then((tokens) {
+      if (!mounted) return;
+      final clusters = tokens.map((t) => t.cluster).whereType<String>().where((c) => c.isNotEmpty).toSet().toList()
+        ..sort();
+      setState(() => _clusterOptions = clusters);
+    });
+  }
 
   void _onCoingeckoQueryChanged(String value) {
     _debounce?.cancel();
@@ -197,9 +221,9 @@ class _AddTokenDialogState extends State<AddTokenDialog> {
       await api.createToken({
         'ticker': _ticker.text.trim().toUpperCase(),
         if (_projectName.text.trim().isNotEmpty) 'projectName': _projectName.text.trim(),
-        if (_chain.text.trim().isNotEmpty) 'primaryChain': _chain.text.trim(),
+        if (_chain.trim().isNotEmpty) 'primaryChain': _chain.trim(),
         if (_selectedCoin != null) 'coingeckoId': _selectedCoin!.id,
-        if (_cluster.text.trim().isNotEmpty) 'cluster': _cluster.text.trim(),
+        if (_cluster.trim().isNotEmpty) 'cluster': _cluster.trim(),
       });
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -222,11 +246,16 @@ class _AddTokenDialogState extends State<AddTokenDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(controller: _ticker, decoration: const InputDecoration(labelText: 'Ticker *')),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               TextField(controller: _projectName, decoration: const InputDecoration(labelText: 'Project name')),
-              const SizedBox(height: 8),
-              TextField(controller: _chain, decoration: const InputDecoration(labelText: 'Primary chain')),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
+              SearchableField(
+                label: 'Primary chain',
+                initialValue: _chain,
+                options: commonChains,
+                onChanged: (v) => _chain = v,
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: _coingeckoQuery,
                 decoration: const InputDecoration(labelText: 'CoinGecko search'),
@@ -234,34 +263,45 @@ class _AddTokenDialogState extends State<AddTokenDialog> {
               ),
               if (_selectedCoin != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Chip(label: Text('Selected: ${_selectedCoin!.name} (${_selectedCoin!.id})')),
-                ),
-              if (_suggestions.isNotEmpty)
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: _suggestions
-                        .map(
-                          (s) => ListTile(
-                            dense: true,
-                            title: Text('${s.name} (${s.symbol.toUpperCase()})'),
-                            subtitle: Text(s.id),
-                            onTap: () => setState(() {
-                              _selectedCoin = s;
-                              _suggestions = [];
-                              _coingeckoQuery.text = s.name;
-                            }),
-                          ),
-                        )
-                        .toList(),
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Chip(
+                    avatar: const Icon(Icons.check_circle_rounded, size: 16),
+                    label: Text('${_selectedCoin!.name} (${_selectedCoin!.id})'),
                   ),
                 ),
-              const SizedBox(height: 8),
-              TextField(controller: _cluster, decoration: const InputDecoration(labelText: 'Cluster')),
+              if (_suggestions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: _suggestions
+                          .map(
+                            (s) => ListTile(
+                              dense: true,
+                              title: Text('${s.name} (${s.symbol.toUpperCase()})'),
+                              subtitle: Text(s.id),
+                              onTap: () => setState(() {
+                                _selectedCoin = s;
+                                _suggestions = [];
+                                _coingeckoQuery.text = s.name;
+                              }),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              SearchableField(
+                label: 'Cluster',
+                initialValue: _cluster,
+                options: _clusterOptions,
+                onChanged: (v) => _cluster = v,
+              ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(_error!, style: const TextStyle(color: downColor)),
               ],
             ],

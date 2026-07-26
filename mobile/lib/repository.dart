@@ -94,6 +94,7 @@ class AppRepository {
 
   Future<List<Token>> listTokens({String? status}) async {
     final all = await _allTokenRows();
+    if (status == 'all') return all;
     if (status != null) return all.where((t) => t.status == status).toList();
     return all.where((t) => t.status != 'removed').toList();
   }
@@ -268,6 +269,7 @@ class AppRepository {
       _snapshots[token.ticker] = MetricSnapshot(
         id: 0,
         fetchedAt: DateTime.now().toIso8601String(),
+        imageUrl: market?.imageUrl,
         priceCoingecko: cgPrice,
         priceDexscreener: dexPrice?.price,
         priceBinance: binance?.price,
@@ -277,11 +279,14 @@ class AppRepository {
         fdv: market?.fullyDilutedValuation,
         volume24h: volume24h,
         volumeToMcap: (volume24h != null && marketCap != null && marketCap != 0) ? volume24h / marketCap : null,
+        change1hPct: market?.change1hPct,
         change24hPct: market?.change24hPct,
         change7dPct: market?.change7dPct,
         change30dPct: market?.change30dPct,
         ath: market?.ath,
         drawdownFromAthPct: market?.athChangePct,
+        atl: market?.atl,
+        aboveAtlPct: market?.atlChangePct,
         circulatingSupply: circulating,
         totalSupply: total,
         floatPct: (circulating != null && total != null && total != 0) ? (circulating / total) * 100 : null,
@@ -507,8 +512,12 @@ class AppRepository {
         github: detail.githubRepos,
         chat: detail.chatUrls,
       ),
+      watchlistPortfolioUsers: detail.watchlistPortfolioUsers,
       redditSubscribers: detail.redditSubscribers,
       telegramUserCount: detail.telegramUserCount,
+      redditAveragePosts48h: detail.redditAveragePosts48h,
+      redditAverageComments48h: detail.redditAverageComments48h,
+      redditAccountsActive48h: detail.redditAccountsActive48h,
       stars: detail.stars,
       forks: detail.forks,
       contributors: detail.pullRequestContributors,

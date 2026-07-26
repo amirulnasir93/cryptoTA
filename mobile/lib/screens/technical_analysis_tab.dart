@@ -38,10 +38,11 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
           child: SizedBox(
             height: 36,
             child: ListView(
@@ -77,77 +78,116 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                 );
               }
               return ListView(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.fromLTRB(16, 8, 16, bottomSafePadding(context)),
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _TrendBadge(state: result.trendState!),
-                      Text('${result.points.length} candles', style: TextStyle(color: Theme.of(context).hintColor)),
+                      Text('${result.points.length} candles', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'A mechanical read of current indicator state -- not a price forecast.',
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
+                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(height: 280, child: CandlestickChartWidget(points: result.points)),
-                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 12, 12, 4),
+                      child: SizedBox(height: 260, child: CandlestickChartWidget(points: result.points)),
+                    ),
+                  ),
                   if (result.divergences.isNotEmpty) ...[
-                    const Text('Divergence', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    ...result.divergences.map(
-                      (d) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          '${d.type[0].toUpperCase()}${d.type.substring(1)} ${d.indicator} divergence',
-                          style: TextStyle(color: d.type == 'bullish' ? upColor : downColor),
-                        ),
+                    const SizedBox(height: 20),
+                    const SectionHeader(title: 'Divergence'),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: result.divergences
+                            .map(
+                              (d) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      d.type == 'bullish' ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                                      size: 16,
+                                      color: d.type == 'bullish' ? upColor : downColor,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${d.type[0].toUpperCase()}${d.type.substring(1)} ${d.indicator} divergence',
+                                      style: TextStyle(color: d.type == 'bullish' ? upColor : downColor, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
                   if (result.keyLevels.isNotEmpty) ...[
-                    const Text('Key levels', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Support/resistance from actual swing structure, not a prediction.',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
+                    const SizedBox(height: 20),
+                    const SectionHeader(
+                      title: 'Key levels',
+                      subtitle: 'Support/resistance from actual swing structure, not a prediction.',
                     ),
-                    const SizedBox(height: 6),
-                    ...result.keyLevels.map(
-                      (k) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Text(
-                              k.type == 'resistance' ? 'Resistance' : 'Support',
-                              style: TextStyle(color: k.type == 'resistance' ? downColor : upColor, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(k.price.toStringAsFixed(k.price < 1 ? 6 : 2)),
-                            const SizedBox(width: 8),
-                            Text('${k.touches}× touched', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
-                          ],
-                        ),
+                    AppCard(
+                      child: Column(
+                        children: result.keyLevels
+                            .map(
+                              (k) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: (k.type == 'resistance' ? downColor : upColor).withValues(alpha: 0.14),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: Text(
+                                        k.type == 'resistance' ? 'Resistance' : 'Support',
+                                        style: TextStyle(
+                                          color: k.type == 'resistance' ? downColor : upColor,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(k.price.toStringAsFixed(k.price < 1 ? 6 : 2), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 8),
+                                    Text('${k.touches}× touched', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
                   if (result.trendChannel != null) ...[
-                    const Text('Trend channel', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(
-                      'A line through the last 2 swing highs/lows, extended forward -- a geometric read of '
-                      'current structure, invalidated the moment price breaks it. Not a prediction.',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
+                    const SizedBox(height: 20),
+                    const SectionHeader(
+                      title: 'Trend channel',
+                      subtitle: 'A line through the last 2 swing highs/lows, extended forward. Not a prediction.',
                     ),
-                    const SizedBox(height: 6),
-                    Text('Upper: ${result.trendChannel!.upper.fromPrice.toStringAsFixed(4)} → '
-                        '${result.trendChannel!.upper.toPrice.toStringAsFixed(4)}'),
-                    Text('Lower: ${result.trendChannel!.lower.fromPrice.toStringAsFixed(4)} → '
-                        '${result.trendChannel!.lower.toPrice.toStringAsFixed(4)}'),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Upper: ${result.trendChannel!.upper.fromPrice.toStringAsFixed(4)} → '
+                              '${result.trendChannel!.upper.toPrice.toStringAsFixed(4)}'),
+                          const SizedBox(height: 4),
+                          Text('Lower: ${result.trendChannel!.lower.fromPrice.toStringAsFixed(4)} → '
+                              '${result.trendChannel!.lower.toPrice.toStringAsFixed(4)}'),
+                        ],
+                      ),
+                    ),
                   ],
                 ],
               );
@@ -168,12 +208,12 @@ class _TrendBadge extends StatelessWidget {
     final color = switch (state) {
       'Uptrend' => upColor,
       'Downtrend' => downColor,
-      _ => Colors.grey,
+      _ => Theme.of(context).colorScheme.onSurfaceVariant,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
-      child: Text(state, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+      child: Text(state, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
     );
   }
 }

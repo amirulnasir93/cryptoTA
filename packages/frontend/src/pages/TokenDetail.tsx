@@ -65,6 +65,9 @@ export function TokenDetail() {
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2">
+          {s?.imageUrl && (
+            <img src={s.imageUrl} alt="" className="h-6 w-6 rounded-full" referrerPolicy="no-referrer" />
+          )}
           <h1 className="text-xl font-semibold">{token.ticker}</h1>
           <span className="text-neutral-500 dark:text-neutral-400">{token.projectName}</span>
           <DataQualityBadge quality={s?.dataQuality} />
@@ -104,6 +107,7 @@ export function TokenDetail() {
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Metric label="Price" value={s?.priceCoingecko != null ? `$${s.priceCoingecko}` : "—"} />
+            <Metric label="1h" value={<DeltaText value={s?.change1hPct} />} />
             <Metric label="24h" value={<DeltaText value={s?.change24hPct} />} />
             <Metric label="7d" value={<DeltaText value={s?.change7dPct} />} />
             <Metric label="30d" value={<DeltaText value={s?.change30dPct} />} />
@@ -114,6 +118,10 @@ export function TokenDetail() {
             <Metric
               label="ATH drawdown"
               value={s?.drawdownFromAthPct != null ? `${s.drawdownFromAthPct.toFixed(1)}%` : "—"}
+            />
+            <Metric
+              label="Above ATL"
+              value={s?.aboveAtlPct != null ? `${s.aboveAtlPct.toFixed(1)}%` : "—"}
             />
             <Metric label="Float" value={s?.floatPct != null ? `${s.floatPct.toFixed(1)}%` : "—"} />
             <Metric label="TVL" value={s?.tvl != null ? formatUsd(s.tvl) : "—"} />

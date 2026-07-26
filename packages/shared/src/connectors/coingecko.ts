@@ -9,15 +9,19 @@ const CG = "https://api.coingecko.com/api/v3";
 
 export interface CoingeckoMarket {
   id: string;
+  image?: string | null;
   current_price: number | null;
   market_cap: number | null;
   fully_diluted_valuation: number | null;
   total_volume: number | null;
+  price_change_percentage_1h_in_currency?: number | null;
   price_change_percentage_24h_in_currency?: number | null;
   price_change_percentage_7d_in_currency?: number | null;
   price_change_percentage_30d_in_currency?: number | null;
   ath: number | null;
   ath_change_percentage: number | null;
+  atl?: number | null;
+  atl_change_percentage?: number | null;
   circulating_supply: number | null;
   total_supply: number | null;
 }
@@ -32,7 +36,7 @@ export async function fetchCoingeckoMarkets(
   const params = new URLSearchParams({
     vs_currency: "usd",
     ids: ids.join(","),
-    price_change_percentage: "24h,7d,30d",
+    price_change_percentage: "1h,24h,7d,30d",
     sparkline: "false",
   });
 
@@ -99,6 +103,9 @@ export interface CoingeckoCoinDetail {
   market_cap_rank: number | null;
   sentiment_votes_up_percentage: number | null;
   sentiment_votes_down_percentage: number | null;
+  // How many CoinGecko users have this coin on their own watchlist -- a
+  // popularity signal independent of Reddit/Telegram/GitHub activity.
+  watchlist_portfolio_users?: number | null;
   links: {
     homepage: string[];
     chat_url: string[];
@@ -110,6 +117,10 @@ export interface CoingeckoCoinDetail {
   community_data: {
     reddit_subscribers: number | null;
     telegram_channel_user_count: number | null;
+    // Actual engagement, not just a (often stale) subscriber count.
+    reddit_average_posts_48h?: number | null;
+    reddit_average_comments_48h?: number | null;
+    reddit_accounts_active_48h?: number | null;
   } | null;
   developer_data: {
     forks: number | null;

@@ -78,17 +78,26 @@ export function TokenTable({
               className="cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
             >
               <td className="px-3 py-2">
-                <span className="font-medium">{t.ticker}</span>
-                {t.collisionWarning && (
-                  <span
-                    title={t.collisionWarning}
-                    className="ml-1.5 cursor-help text-xs"
-                    style={{ color: "var(--status-warning)" }}
-                  >
-                    ⚠
-                  </span>
-                )}
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.projectName}</div>
+                <div className="flex items-center gap-2">
+                  {t.latestSnapshot?.imageUrl ? (
+                    <img src={t.latestSnapshot.imageUrl} alt="" className="h-5 w-5 rounded-full" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-700" />
+                  )}
+                  <div>
+                    <span className="font-medium">{t.ticker}</span>
+                    {t.collisionWarning && (
+                      <span
+                        title={t.collisionWarning}
+                        className="ml-1.5 cursor-help text-xs"
+                        style={{ color: "var(--status-warning)" }}
+                      >
+                        ⚠
+                      </span>
+                    )}
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.projectName}</div>
+                  </div>
+                </div>
               </td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {t.latestSnapshot?.priceCoingecko != null ? `$${formatPrice(t.latestSnapshot.priceCoingecko)}` : "—"}

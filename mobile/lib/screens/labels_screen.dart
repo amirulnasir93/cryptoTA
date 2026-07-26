@@ -35,46 +35,75 @@ class _LabelsScreenState extends State<LabelsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Labels')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Add a new label from a token\'s Overview tab -- it shows up here once at least one token has it.',
-              style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
-            ),
-          ),
-          Expanded(
-            child: FutureBuilder<List<Label>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return ErrorRetry(message: 'Could not load labels: ${snapshot.error}', onRetry: _reload);
-                }
-                final labels = snapshot.data!;
-                if (labels.isEmpty) {
-                  return Center(child: Text('No labels yet.', style: TextStyle(color: Theme.of(context).hintColor)));
-                }
-                return ListView.separated(
-                  itemCount: labels.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final l = labels[i];
-                    return ListTile(
-                      title: Text(l.name),
-                      trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _delete(l)),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+      body: FutureBuilder<List<Label>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return ErrorRetry(message: 'Could not load labels: ${snapshot.error}', onRetry: _reload);
+          }
+          final labels = snapshot.data!;
+          return ListView(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, bottomSafePadding(context)),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 18, color: scheme.onPrimaryContainer),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Add a new label from a token's Overview tab -- it shows up here once at least one token has it.",
+                        style: TextStyle(fontSize: 12.5, color: scheme.onPrimaryContainer, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (labels.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text('No labels yet.', style: TextStyle(color: scheme.onSurfaceVariant)),
+                  ),
+                )
+              else
+                Card(
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < labels.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: scheme.secondaryContainer,
+                            child: Icon(Icons.label_rounded, size: 16, color: scheme.onSecondaryContainer),
+                          ),
+                          title: Text(labels[i].name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, color: scheme.onSurfaceVariant),
+                            onPressed: () => _delete(labels[i]),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
