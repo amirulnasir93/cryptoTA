@@ -8,7 +8,6 @@ import 'repository.dart';
 import 'theme.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/watchlist_screen.dart';
-import 'screens/labels_screen.dart';
 import 'screens/settings_screen.dart';
 
 void main() {
@@ -151,7 +150,6 @@ class _AppShellState extends State<AppShell> {
   static const _screens = [
     DashboardScreen(),
     WatchlistScreen(),
-    LabelsScreen(),
     SettingsScreen(firstRun: false),
   ];
 
@@ -165,7 +163,6 @@ class _AppShellState extends State<AppShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.list_alt_outlined), selectedIcon: Icon(Icons.list_alt), label: 'Watchlist'),
-          NavigationDestination(icon: Icon(Icons.label_outline), selectedIcon: Icon(Icons.label), label: 'Labels'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),

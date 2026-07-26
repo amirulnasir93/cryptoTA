@@ -4,6 +4,7 @@ import '../repository.dart';
 import '../models.dart';
 import '../widgets/candlestick_chart_widget.dart';
 import '../widgets/common.dart';
+import '../widgets/indicator_charts.dart';
 
 const _intervals = ['15m', '1h', '2h', '4h', '1d', '2d', '3d', '1w', '1M'];
 
@@ -96,9 +97,26 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(4, 12, 12, 4),
-                      child: SizedBox(height: 260, child: CandlestickChartWidget(points: result.points)),
+                      child: SizedBox(
+                        height: 280,
+                        child: CandlestickChartWidget(
+                          points: result.points,
+                          keyLevels: result.keyLevels,
+                          trendChannel: result.trendChannel,
+                        ),
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  MacdChart(points: result.points),
+                  const SizedBox(height: 8),
+                  StochRsiChart(points: result.points),
+                  const SizedBox(height: 8),
+                  RsiChart(points: result.points),
+                  const SizedBox(height: 8),
+                  VolumeChart(points: result.points),
+                  const SizedBox(height: 8),
+                  ObvChart(points: result.points),
                   if (result.divergences.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const SectionHeader(title: 'Divergence'),

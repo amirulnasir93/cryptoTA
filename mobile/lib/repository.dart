@@ -6,6 +6,7 @@
 import 'models.dart';
 import 'sheets_client.dart';
 import 'known_collisions.dart';
+import 'category.dart';
 import 'candles.dart' as candles;
 import 'gating.dart' as gating;
 import 'indicators.dart' as ind;
@@ -44,6 +45,12 @@ class AppRepository {
   /// the views that need it).
   final Map<String, MetricSnapshot> _snapshots = {};
 
+  /// Simplified (DeFi/Perp/DEX/...) category per ticker, populated the first
+  /// time a token's Insight tab is viewed this session -- not refetched on
+  /// every price refresh, since it's a separate, heavier CoinGecko call and
+  /// a project's category essentially never changes mid-session.
+  final Map<String, String?> _categoryCache = {};
+
   Token _tokenFromRow(int rowNumber, List<String> row) {
     final ticker = row[0].trim().toUpperCase();
     final contract = row[3];
@@ -66,6 +73,7 @@ class AppRepository {
           : [TokenDeployment(id: 0, chain: chain, contractAddress: contract, isPrimaryLiquidity: true)],
       labels: parseLabelList(row[10]).map((n) => Label(id: n.hashCode, name: n)).toList(),
       latestSnapshot: _snapshots[ticker],
+      category: _categoryCache[ticker],
     );
   }
 
@@ -493,6 +501,7 @@ class AppRepository {
         "CoinGecko did not return project details for this token (may be rate-limited -- try again shortly).",
       );
     }
+    _categoryCache[token.ticker] = simplifyCategories(detail.categories);
     return TokenInsightResult.fromComputed(
       description: detail.description?.trim().isEmpty == true ? null : detail.description,
       categories: detail.categories,

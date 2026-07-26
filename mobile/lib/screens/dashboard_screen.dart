@@ -14,6 +14,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late Future<DashboardSummary> _future;
+  String? _selectedLabel;
 
   // Logged (not just surfaced via FutureBuilder's snapshot.error) so a
   // real device failure shows up in `adb logcat` instead of only ever being
@@ -54,6 +55,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           final d = snapshot.data!;
           final goodCount = d.dataQualityCounts['Good'] ?? 0;
+          final allLabels = {for (final t in d.tokens) for (final l in t.labels) l.name}.toList()..sort();
+          final visibleTokens = _selectedLabel == null
+              ? d.tokens
+              : d.tokens.where((t) => t.labels.any((l) => l.name == _selectedLabel)).toList();
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -164,14 +169,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                const SectionHeader(title: 'Tokens'),
+                SectionHeader(
+                  title: 'Tokens',
+                  trailing: _selectedLabel == null
+                      ? null
+                      : TextButton(
+                          onPressed: () => setState(() => _selectedLabel = null),
+                          child: const Text('Clear filter'),
+                        ),
+                ),
+                if (allLabels.isNotEmpty) ...[
+                  SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: allLabels
+                          .map(
+                            (name) => Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: FilterChip(
+                                label: Text(name),
+                                selected: _selectedLabel == name,
+                                onSelected: (selected) => setState(() => _selectedLabel = selected ? name : null),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Card(
                   child: Column(
                     children: [
-                      for (var i = 0; i < d.tokens.length; i++) ...[
+                      for (var i = 0; i < visibleTokens.length; i++) ...[
                         if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-                        _TokenRow(token: d.tokens[i]),
+                        _TokenRow(token: visibleTokens[i]),
                       ],
+                      if (visibleTokens.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text('No tokens with this label.', style: TextStyle(color: scheme.onSurfaceVariant)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -191,10 +232,40 @@ class _TokenRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = token.latestSnapshot;
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: TickerAvatar(ticker: token.ticker, imageUrl: s?.imageUrl),
       title: Text(token.ticker, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(token.projectName ?? ''),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (token.projectName != null && token.projectName!.isNotEmpty) Text(token.projectName!),
+          if (token.labels.isNotEmpty || token.category != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  if (token.category != null) CategoryBadge(category: token.category!),
+                  for (final l in token.labels)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: scheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        l.name,
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: scheme.onSecondaryContainer),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

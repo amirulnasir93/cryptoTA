@@ -104,13 +104,36 @@ class DataQualityBadge extends StatelessWidget {
   }
 }
 
+/// A short project-category tag (DeFi/Perp/DEX/...) -- one consistent style
+/// regardless of which category, so it reads as "informational tag" rather
+/// than competing for attention with the data-quality/label badges already
+/// on the same row.
+class CategoryBadge extends StatelessWidget {
+  final String category;
+  const CategoryBadge({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.tertiary.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(category, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: scheme.tertiary)),
+    );
+  }
+}
+
 /// A single metric in a card-based grid -- icon + label on top, value below,
 /// consistent across Dashboard/Token Detail/Insight.
 class StatTile extends StatelessWidget {
   final String label;
   final Widget value;
   final IconData? icon;
-  const StatTile({super.key, required this.label, required this.value, this.icon});
+  final Color? iconColor;
+  const StatTile({super.key, required this.label, required this.value, this.icon, this.iconColor});
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +148,7 @@ class StatTile extends StatelessWidget {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+                  Icon(icon, size: 14, color: iconColor ?? scheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                 ],
                 Expanded(

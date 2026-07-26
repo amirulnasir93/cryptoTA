@@ -63,14 +63,31 @@ class _InsightTabState extends State<InsightTab> {
           padding: EdgeInsets.fromLTRB(16, 12, 16, bottomSafePadding(context)),
           children: [
             if (insight.description != null && insight.description!.isNotEmpty) ...[
-              AppCard(child: Text(insight.description!.replaceAll('&nbsp;', ' '), style: const TextStyle(height: 1.5))),
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border(left: BorderSide(color: scheme.primary, width: 3)),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Text(insight.description!.replaceAll('&nbsp;', ' '), style: const TextStyle(height: 1.5)),
+              ),
               const SizedBox(height: 16),
             ],
             if (insight.categories.isNotEmpty) ...[
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: insight.categories.take(12).map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 11)))).toList(),
+                children: insight.categories
+                    .take(12)
+                    .map(
+                      (c) => Chip(
+                        label: Text(c, style: TextStyle(fontSize: 11, color: scheme.onTertiaryContainer)),
+                        backgroundColor: scheme.tertiaryContainer,
+                        side: BorderSide.none,
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
@@ -83,6 +100,8 @@ class _InsightTabState extends State<InsightTab> {
                       (l) => ActionChip(
                         avatar: Icon(Icons.open_in_new_rounded, size: 14, color: scheme.primary),
                         label: Text(l.$1),
+                        backgroundColor: scheme.primaryContainer.withValues(alpha: 0.5),
+                        side: BorderSide.none,
                         onPressed: () => _open(l.$2),
                       ),
                     )
@@ -99,41 +118,88 @@ class _InsightTabState extends State<InsightTab> {
               crossAxisSpacing: 10,
               children: [
                 if (insight.marketCapRank != null)
-                  StatTile(label: 'Market cap rank', icon: Icons.leaderboard_rounded, value: Text('#${insight.marketCapRank}')),
+                  StatTile(
+                    label: 'Market cap rank',
+                    icon: Icons.leaderboard_rounded,
+                    iconColor: scheme.primary,
+                    value: Text('#${insight.marketCapRank}'),
+                  ),
                 if (insight.sentimentUpPct != null)
                   StatTile(
                     label: 'Sentiment',
                     icon: Icons.thumbs_up_down_rounded,
-                    value: Text('${insight.sentimentUpPct}% / ${insight.sentimentDownPct}%'),
+                    iconColor: scheme.primary,
+                    value: Row(
+                      children: [
+                        Text('${insight.sentimentUpPct}%', style: TextStyle(color: upColor)),
+                        Text(' / ', style: TextStyle(color: scheme.onSurfaceVariant)),
+                        Text('${insight.sentimentDownPct}%', style: TextStyle(color: downColor)),
+                      ],
+                    ),
                   ),
                 if (insight.watchlistPortfolioUsers != null)
                   StatTile(
                     label: 'CoinGecko watchlists',
                     icon: Icons.visibility_rounded,
+                    iconColor: scheme.primary,
                     value: Text('${insight.watchlistPortfolioUsers}'),
                   ),
                 if (insight.redditSubscribers != null)
-                  StatTile(label: 'Reddit subs', icon: Icons.forum_rounded, value: Text('${insight.redditSubscribers}')),
+                  StatTile(
+                    label: 'Reddit subs',
+                    icon: Icons.forum_rounded,
+                    iconColor: brandBlue,
+                    value: Text('${insight.redditSubscribers}'),
+                  ),
                 if (insight.redditAccountsActive48h != null)
                   StatTile(
                     label: 'Reddit active (48h)',
                     icon: Icons.groups_rounded,
+                    iconColor: brandBlue,
                     value: Text('${insight.redditAccountsActive48h}'),
                   ),
                 if (insight.redditAveragePosts48h != null)
                   StatTile(
                     label: 'Reddit posts (48h avg)',
                     icon: Icons.article_rounded,
+                    iconColor: brandBlue,
                     value: Text(insight.redditAveragePosts48h!.toStringAsFixed(1)),
                   ),
                 if (insight.telegramUserCount != null)
-                  StatTile(label: 'Telegram members', icon: Icons.send_rounded, value: Text('${insight.telegramUserCount}')),
-                if (insight.stars != null) StatTile(label: 'GitHub stars', icon: Icons.star_rounded, value: Text('${insight.stars}')),
-                if (insight.forks != null) StatTile(label: 'GitHub forks', icon: Icons.call_split_rounded, value: Text('${insight.forks}')),
+                  StatTile(
+                    label: 'Telegram members',
+                    icon: Icons.send_rounded,
+                    iconColor: brandBlue,
+                    value: Text('${insight.telegramUserCount}'),
+                  ),
+                if (insight.stars != null)
+                  StatTile(
+                    label: 'GitHub stars',
+                    icon: Icons.star_rounded,
+                    iconColor: scheme.tertiary,
+                    value: Text('${insight.stars}'),
+                  ),
+                if (insight.forks != null)
+                  StatTile(
+                    label: 'GitHub forks',
+                    icon: Icons.call_split_rounded,
+                    iconColor: scheme.tertiary,
+                    value: Text('${insight.forks}'),
+                  ),
                 if (insight.contributors != null)
-                  StatTile(label: 'Contributors', icon: Icons.group_rounded, value: Text('${insight.contributors}')),
+                  StatTile(
+                    label: 'Contributors',
+                    icon: Icons.group_rounded,
+                    iconColor: scheme.tertiary,
+                    value: Text('${insight.contributors}'),
+                  ),
                 if (insight.commitCount4Weeks != null)
-                  StatTile(label: 'Commits (4wk)', icon: Icons.commit_rounded, value: Text('${insight.commitCount4Weeks}')),
+                  StatTile(
+                    label: 'Commits (4wk)',
+                    icon: Icons.commit_rounded,
+                    iconColor: scheme.tertiary,
+                    value: Text('${insight.commitCount4Weeks}'),
+                  ),
               ],
             ),
           ],

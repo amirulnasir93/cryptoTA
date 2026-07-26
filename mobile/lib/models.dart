@@ -149,6 +149,12 @@ class Token {
   final List<TokenDeployment> deployments;
   final List<Label> labels;
   final MetricSnapshot? latestSnapshot;
+  // A short (DeFi/Perp/DEX/L1/...) label derived from CoinGecko's raw
+  // categories -- only populated once this token's Insight tab has been
+  // fetched at least once this session (see AppRepository's category cache);
+  // null otherwise rather than triggering an extra fetch for every token on
+  // every price refresh.
+  final String? category;
 
   Token({
     required this.id,
@@ -166,6 +172,7 @@ class Token {
     this.deployments = const [],
     this.labels = const [],
     this.latestSnapshot,
+    this.category,
   });
 
   factory Token.fromJson(Map<String, dynamic> json) => Token(

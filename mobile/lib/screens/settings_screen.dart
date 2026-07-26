@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../app_config.dart';
 import '../google_auth.dart';
 import '../widgets/common.dart';
+import 'labels_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool firstRun;
@@ -182,6 +183,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+        if (!widget.firstRun) ...[
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Watchlist'),
+          Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                radius: 18,
+                backgroundColor: scheme.secondaryContainer,
+                child: Icon(Icons.label_rounded, color: scheme.onSecondaryContainer, size: 18),
+              ),
+              title: const Text('Manage labels', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('View every label in use, or remove one everywhere'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LabelsScreen())),
+            ),
+          ),
+        ],
         if (_status != null) ...[
           const SizedBox(height: 16),
           Row(
