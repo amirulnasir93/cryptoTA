@@ -1,77 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_config.dart';
-import '../api_client.dart';
-import '../models.dart';
+import '../google_auth.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool firstRun;
-  const SettingsScreen({super.key, required this.firstRun});
+  final VoidCallback? onConfigured;
+  const SettingsScreen({super.key, required this.firstRun, this.onConfigured});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late final TextEditingController _urlController;
-  late final TextEditingController _secretController;
+  late final TextEditingController _serverClientIdController;
+  late final TextEditingController _sheetIdController;
+  late final TextEditingController _coingeckoController;
   String? _status;
   bool _busy = false;
-  List<ConflictLogEntry> _conflicts = [];
 
   @override
   void initState() {
     super.initState();
     final config = context.read<AppConfig>();
-    _urlController = TextEditingController(text: config.baseUrl ?? 'http://10.0.2.2:3001');
-    _secretController = TextEditingController(text: config.refreshSecret ?? '');
-    if (!widget.firstRun) _loadConflicts();
+    _serverClientIdController = TextEditingController(text: config.serverClientId ?? '');
+    _sheetIdController = TextEditingController(text: config.sheetId ?? '');
+    _coingeckoController = TextEditingController(text: config.coingeckoApiKey ?? '');
   }
 
-  Future<void> _loadConflicts() async {
-    try {
-      final api = context.read<ApiClient>();
-      final conflicts = await api.listConflicts();
-      if (mounted) setState(() => _conflicts = conflicts);
-    } catch (_) {
-      // Conflict log is a nice-to-have on this screen -- don't block Settings
-      // from rendering if it fails to load.
-    }
+  Future<void> _saveServerClientId() async {
+    await context.read<AppConfig>().setServerClientId(_serverClientIdController.text);
+    setState(() => _status = 'Web Client ID saved.');
+    widget.onConfigured?.call();
   }
 
-  Future<void> _saveUrl() async {
-    await context.read<AppConfig>().setBaseUrl(_urlController.text);
-    setState(() => _status = 'Saved. Base URL: ${_urlController.text}');
-  }
-
-  Future<void> _saveSecret() async {
-    await context.read<AppConfig>().setRefreshSecret(_secretController.text);
-    setState(() => _status = 'Refresh secret saved.');
-  }
-
-  Future<void> _runAction(Future<Map<String, dynamic>> Function(String secret) action, String label) async {
-    final secret = context.read<AppConfig>().refreshSecret;
-    if (secret == null || secret.isEmpty) {
-      setState(() => _status = 'Set the refresh secret first.');
+  Future<void> _signIn() async {
+    final serverClientId = context.read<AppConfig>().serverClientId;
+    if (serverClientId == null || serverClientId.isEmpty) {
+      setState(() => _status = 'Save the Web Client ID first.');
       return;
     }
     setState(() {
       _busy = true;
-      _status = 'Running $label…';
+      _status = null;
     });
     try {
-      final result = await action(secret);
-      setState(() => _status = '$label done: $result');
-      _loadConflicts();
+      final account = await GoogleAuthService.instance.signIn(serverClientId);
+      setState(() => _status = 'Signed in as ${account.email}');
+      widget.onConfigured?.call();
     } catch (e) {
-      setState(() => _status = '$label failed: $e');
+      setState(() => _status = 'Sign-in failed: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  Future<void> _signOut() async {
+    await GoogleAuthService.instance.signOut();
+    setState(() => _status = 'Signed out');
+    widget.onConfigured?.call();
+  }
+
+  Future<void> _saveSheetId() async {
+    await context.read<AppConfig>().setSheetId(_sheetIdController.text);
+    setState(() => _status = 'Sheet ID saved.');
+    widget.onConfigured?.call();
+  }
+
+  Future<void> _saveCoingeckoKey() async {
+    await context.read<AppConfig>().setCoingeckoApiKey(_coingeckoController.text);
+    setState(() => _status = 'CoinGecko API key saved.');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final signedIn = GoogleAuthService.instance.isSignedIn;
+    final account = GoogleAuthService.instance.account;
+
     final body = ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -79,74 +84,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Text('Welcome', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           const Text(
-            'Point the app at your backend before continuing. An Android emulator reaches your '
-            "computer's localhost at 10.0.2.2; a physical phone needs your computer's LAN IP "
-            '(e.g. http://192.168.1.20:3001) with both devices on the same network.',
+            "This app uses your Google Sheet as its database. One-time setup: paste the Web Client ID "
+            "from Google Cloud Console (see docs/MOBILE_SHEETS_SETUP.md), sign in with the Google account "
+            "that already has access to your Watchlist Sheet, then paste the Sheet ID.",
           ),
           const SizedBox(height: 16),
         ],
-        const Text('Backend URL', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _urlController,
-          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'http://10.0.2.2:3001'),
-          keyboardType: TextInputType.url,
-        ),
-        const SizedBox(height: 8),
-        FilledButton(onPressed: _saveUrl, child: const Text('Save URL')),
-        const SizedBox(height: 24),
-        const Text('Refresh secret', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Web Client ID', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(
-          'Same shared secret as the web app\'s Settings page -- protects /refresh and /sync routes.',
+          'The *Web application* OAuth Client ID (not the Android one) from the same Google Cloud project.',
           style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: _secretController,
+          controller: _serverClientIdController,
+          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: '...apps.googleusercontent.com'),
+        ),
+        const SizedBox(height: 8),
+        FilledButton(onPressed: _saveServerClientId, child: const Text('Save Web Client ID')),
+        const SizedBox(height: 24),
+        const Text('Google account', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        if (signedIn)
+          Row(
+            children: [
+              Expanded(child: Text(account?.email ?? 'Signed in')),
+              TextButton(onPressed: _signOut, child: const Text('Sign out')),
+            ],
+          )
+        else
+          FilledButton.icon(
+            onPressed: _busy ? null : _signIn,
+            icon: const Icon(Icons.login),
+            label: const Text('Sign in with Google'),
+          ),
+        const SizedBox(height: 24),
+        const Text('Sheet ID', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(
+          "From the Sheet's URL: docs.google.com/spreadsheets/d/THIS_PART/edit",
+          style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _sheetIdController,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 8),
+        FilledButton(onPressed: _saveSheetId, child: const Text('Save Sheet ID')),
+        const SizedBox(height: 24),
+        const Text('CoinGecko API key (optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(
+          'Raises the free public rate limit. Leave blank to use the keyless tier.',
+          style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _coingeckoController,
           decoration: const InputDecoration(border: OutlineInputBorder()),
           obscureText: true,
         ),
         const SizedBox(height: 8),
-        FilledButton(onPressed: _saveSecret, child: const Text('Save secret')),
-        if (!widget.firstRun) ...[
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 8),
-          const Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: _busy ? null : () => _runAction((s) => context.read<ApiClient>().runRefresh(s), 'Refresh'),
-                child: const Text('Run refresh'),
-              ),
-              OutlinedButton(
-                onPressed: _busy ? null : () => _runAction((s) => context.read<ApiClient>().runSheetSync(s), 'Sheets sync'),
-                child: const Text('Run Sheets sync'),
-              ),
-              OutlinedButton(
-                onPressed:
-                    _busy ? null : () => _runAction((s) => context.read<ApiClient>().syncCoinMarketCal(s), 'Catalyst sync'),
-                child: const Text('Sync catalysts'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text('Conflict log', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          if (_conflicts.isEmpty)
-            Text('None recorded.', style: TextStyle(color: Theme.of(context).hintColor))
-          else
-            ..._conflicts.map(
-              (c) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('${c.ticker} · ${c.field} · resolved: ${c.resolution.replaceAll('_', ' ')}'),
-              ),
-            ),
-        ],
+        FilledButton(onPressed: _saveCoingeckoKey, child: const Text('Save key')),
         if (_status != null) ...[
           const SizedBox(height: 16),
           Text(_status!, style: TextStyle(color: Theme.of(context).hintColor)),

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api_client.dart';
+import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
 
+/// There's no separate Labels table now that the Sheet is the database -- a
+/// label only exists by being listed in some token's "Labels" cell. So this
+/// screen shows the distinct set already in use (add a new one from a
+/// token's own Overview tab) and can remove a label from every token at once.
 class LabelsScreen extends StatefulWidget {
   const LabelsScreen({super.key});
 
@@ -13,28 +17,19 @@ class LabelsScreen extends StatefulWidget {
 
 class _LabelsScreenState extends State<LabelsScreen> {
   late Future<List<Label>> _future;
-  final _nameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _future = context.read<ApiClient>().listLabels();
+    _future = context.read<AppRepository>().listLabels();
   }
 
   void _reload() {
-    setState(() => _future = context.read<ApiClient>().listLabels());
-  }
-
-  Future<void> _create() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) return;
-    await context.read<ApiClient>().createLabel(name, null);
-    _nameController.clear();
-    _reload();
+    setState(() => _future = context.read<AppRepository>().listLabels());
   }
 
   Future<void> _delete(Label l) async {
-    await context.read<ApiClient>().deleteLabel(l.id);
+    await context.read<AppRepository>().deleteLabelEverywhere(l.name);
     _reload();
   }
 
@@ -46,18 +41,9 @@ class _LabelsScreenState extends State<LabelsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'New label name', border: OutlineInputBorder()),
-                    onSubmitted: (_) => _create(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(onPressed: _create, child: const Text('Add')),
-              ],
+            child: Text(
+              'Add a new label from a token\'s Overview tab -- it shows up here once at least one token has it.',
+              style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12),
             ),
           ),
           Expanded(
@@ -79,9 +65,7 @@ class _LabelsScreenState extends State<LabelsScreen> {
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     final l = labels[i];
-                    final color = l.color != null ? Color(int.parse(l.color!.replaceFirst('#', '0xFF'))) : Colors.grey;
                     return ListTile(
-                      leading: CircleAvatar(backgroundColor: color, radius: 8),
                       title: Text(l.name),
                       trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => _delete(l)),
                     );

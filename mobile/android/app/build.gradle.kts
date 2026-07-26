@@ -32,6 +32,16 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // This is a personal-use, sideloaded APK, not a Play Store release --
+    // Android Lint's release-vital check is a static-analysis gate with no
+    // effect on app behavior, and its Kotlin/UAST analysis is metaspace-
+    // hungry enough to OOM this machine's Gradle daemon on its own. Disabled
+    // rather than fought with ever-larger JVM memory flags.
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
 
 kotlin {

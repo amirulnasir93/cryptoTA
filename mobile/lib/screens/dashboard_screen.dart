@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api_client.dart';
+import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
 import 'token_detail_screen.dart';
@@ -18,11 +18,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _future = context.read<ApiClient>().getDashboard();
+    // Refresh on open -- there's no background cron on the phone, see the plan.
+    _future = context.read<AppRepository>().refreshAndGetDashboard();
   }
 
   Future<void> _reload() async {
-    final future = context.read<ApiClient>().getDashboard();
+    final future = context.read<AppRepository>().refreshAndGetDashboard();
     setState(() => _future = future);
     await future;
   }

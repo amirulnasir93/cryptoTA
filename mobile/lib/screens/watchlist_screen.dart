@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api_client.dart';
+import '../repository.dart';
+import '../connectors/coingecko.dart' show CoingeckoSearchResult;
 import '../models.dart';
 import '../widgets/common.dart';
 import 'token_detail_screen.dart';
@@ -20,27 +21,27 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   @override
   void initState() {
     super.initState();
-    _future = context.read<ApiClient>().listTokens(status: _status);
+    _future = context.read<AppRepository>().listTokens(status: _status);
   }
 
   void _reload() {
-    setState(() => _future = context.read<ApiClient>().listTokens(status: _status));
+    setState(() => _future = context.read<AppRepository>().listTokens(status: _status));
   }
 
   void _setStatus(String status) {
     setState(() {
       _status = status;
-      _future = context.read<ApiClient>().listTokens(status: status);
+      _future = context.read<AppRepository>().listTokens(status: status);
     });
   }
 
   Future<void> _archive(Token t) async {
-    await context.read<ApiClient>().archiveToken(t.id);
+    await context.read<AppRepository>().archiveToken(t.id);
     _reload();
   }
 
   Future<void> _restore(Token t) async {
-    await context.read<ApiClient>().restoreToken(t.id);
+    await context.read<AppRepository>().restoreToken(t.id);
     _reload();
   }
 
@@ -57,7 +58,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<ApiClient>().removeToken(t.id);
+      await context.read<AppRepository>().removeToken(t.id);
       _reload();
     }
   }
@@ -176,7 +177,7 @@ class _AddTokenDialogState extends State<AddTokenDialog> {
     _debounce?.cancel();
     _selectedCoin = null;
     _debounce = Timer(const Duration(milliseconds: 350), () async {
-      final api = context.read<ApiClient>();
+      final api = context.read<AppRepository>();
       final results = await api.searchCoingecko(value);
       if (mounted) setState(() => _suggestions = results);
     });
@@ -192,7 +193,7 @@ class _AddTokenDialogState extends State<AddTokenDialog> {
       _error = null;
     });
     try {
-      final api = context.read<ApiClient>();
+      final api = context.read<AppRepository>();
       await api.createToken({
         'ticker': _ticker.text.trim().toUpperCase(),
         if (_projectName.text.trim().isNotEmpty) 'projectName': _projectName.text.trim(),

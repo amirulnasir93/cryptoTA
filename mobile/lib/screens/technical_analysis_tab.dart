@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api_client.dart';
+import '../repository.dart';
 import '../models.dart';
 import '../widgets/candlestick_chart_widget.dart';
 import '../widgets/common.dart';
@@ -26,7 +26,7 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
   }
 
   void _load() {
-    _future = context.read<ApiClient>().getTokenAnalysis(widget.tokenId, _interval);
+    _future = context.read<AppRepository>().getTokenAnalysis(widget.tokenId, _interval);
   }
 
   void _setInterval(String interval) {

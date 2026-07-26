@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../api_client.dart';
+import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
 
@@ -19,11 +19,11 @@ class _InsightTabState extends State<InsightTab> {
   @override
   void initState() {
     super.initState();
-    _future = context.read<ApiClient>().getTokenInsight(widget.tokenId);
+    _future = context.read<AppRepository>().getTokenInsight(widget.tokenId);
   }
 
   void _reload() {
-    setState(() => _future = context.read<ApiClient>().getTokenInsight(widget.tokenId));
+    setState(() => _future = context.read<AppRepository>().getTokenInsight(widget.tokenId));
   }
 
   Future<void> _open(String url) async {

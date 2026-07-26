@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api_client.dart';
+import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
 import 'insight_tab.dart';
@@ -25,8 +25,8 @@ class _TokenDetailScreenState extends State<TokenDetailScreen> {
   }
 
   void _load() {
-    _tokenFuture = context.read<ApiClient>().getToken(widget.tokenId);
-    _labelsFuture = context.read<ApiClient>().listLabels();
+    _tokenFuture = context.read<AppRepository>().getToken(widget.tokenId);
+    _labelsFuture = context.read<AppRepository>().listLabels();
   }
 
   @override
@@ -72,17 +72,29 @@ class _OverviewTab extends StatefulWidget {
 
 class _OverviewTabState extends State<_OverviewTab> {
   final _notesController = TextEditingController();
+  final _newLabelController = TextEditingController();
   int? _notesLoadedForToken;
 
   Future<void> _toggleLabel(TokenDetail token, Label label) async {
-    final has = token.labels.any((l) => l.id == label.id);
-    final nextIds = has ? token.labels.where((l) => l.id != label.id).map((l) => l.id).toList() : [...token.labels.map((l) => l.id), label.id];
-    await context.read<ApiClient>().updateToken(token.id, {'labelIds': nextIds});
+    final has = token.labels.any((l) => l.name == label.name);
+    final names = token.labels.map((l) => l.name).toList();
+    final next = has ? (names..remove(label.name)) : [...names, label.name];
+    await context.read<AppRepository>().updateToken(token.id, {'labels': next});
+    widget.onChanged();
+  }
+
+  Future<void> _addNewLabel(TokenDetail token) async {
+    final name = _newLabelController.text.trim();
+    if (name.isEmpty) return;
+    final names = token.labels.map((l) => l.name).toList();
+    if (!names.contains(name)) names.add(name);
+    await context.read<AppRepository>().updateToken(token.id, {'labels': names});
+    _newLabelController.clear();
     widget.onChanged();
   }
 
   Future<void> _saveNotes(TokenDetail token) async {
-    await context.read<ApiClient>().updateToken(token.id, {'notes': _notesController.text});
+    await context.read<AppRepository>().updateToken(token.id, {'notes': _notesController.text});
     widget.onChanged();
   }
 
@@ -183,11 +195,25 @@ class _OverviewTabState extends State<_OverviewTab> {
                   spacing: 8,
                   runSpacing: 8,
                   children: labels.map((l) {
-                    final active = token.labels.any((tl) => tl.id == l.id);
+                    final active = token.labels.any((tl) => tl.name == l.name);
                     return FilterChip(label: Text(l.name), selected: active, onSelected: (_) => _toggleLabel(token, l));
                   }).toList(),
                 );
               },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newLabelController,
+                    decoration: const InputDecoration(labelText: 'New label', isDense: true, border: OutlineInputBorder()),
+                    onSubmitted: (_) => _addNewLabel(token),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(onPressed: () => _addNewLabel(token), child: const Text('Add')),
+              ],
             ),
             const SizedBox(height: 16),
             const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -244,8 +270,8 @@ class _CatalystSectionState extends State<_CatalystSection> {
 
   Future<void> _add() async {
     if (_date == null || _descriptionController.text.trim().isEmpty) return;
-    await context.read<ApiClient>().createCatalyst({
-      'tokenId': widget.token.id,
+    await context.read<AppRepository>().createCatalyst({
+      'ticker': widget.token.ticker,
       'eventDate': _date!.toIso8601String(),
       'eventType': _type,
       'description': _descriptionController.text.trim(),
@@ -256,7 +282,7 @@ class _CatalystSectionState extends State<_CatalystSection> {
   }
 
   Future<void> _delete(Catalyst c) async {
-    await context.read<ApiClient>().deleteCatalyst(c.id);
+    await context.read<AppRepository>().deleteCatalyst(c.id);
     widget.onChanged();
   }
 

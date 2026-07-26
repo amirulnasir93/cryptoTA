@@ -1,22 +1,31 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:crypto_watchlist_mobile/app_config.dart';
-import 'package:crypto_watchlist_mobile/main.dart';
+import 'package:crypto_watchlist_mobile/screens/settings_screen.dart';
 
 void main() {
-  testWidgets('shows first-run setup when no backend URL is configured', (WidgetTester tester) async {
+  testWidgets('first-run Settings screen prompts for Google sign-in and a Sheet ID', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
+    final config = AppConfig();
+    await config.load();
 
+    // SettingsScreen itself never touches Google Sign-In's platform channels
+    // unless a button is tapped -- isSignedIn/account are plain local getters
+    // -- so this renders safely without a real device or platform mocking,
+    // unlike routing through AppRoot's sign-in restoration.
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => AppConfig()..load(),
-        child: const CryptoWatchlistApp(),
+      ChangeNotifierProvider.value(
+        value: config,
+        child: const MaterialApp(home: SettingsScreen(firstRun: true)),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Sign in with Google'), findsOneWidget);
+    expect(find.text('Sheet ID'), findsOneWidget);
   });
 }

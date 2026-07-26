@@ -530,7 +530,10 @@ class TokenAnalysisResult {
         keyLevels = const [],
         trendChannel = null;
 
-  TokenAnalysisResult._available({
+  /// Used both when parsing a JSON response (see [fromJson]) and when the
+  /// analysis is computed directly on-device from ported indicator logic
+  /// (see repository.dart's getTokenAnalysis) -- same shape either way.
+  TokenAnalysisResult.fromComputed({
     required this.tokenId,
     required this.ticker,
     required this.interval,
@@ -546,7 +549,7 @@ class TokenAnalysisResult {
   factory TokenAnalysisResult.fromJson(Map<String, dynamic> json) {
     if (json['available'] == false) return TokenAnalysisResult.unavailable(json['reason'] as String);
     final trend = json['trend'] as Map<String, dynamic>;
-    return TokenAnalysisResult._available(
+    return TokenAnalysisResult.fromComputed(
       tokenId: json['tokenId'] as int,
       ticker: json['ticker'] as String,
       interval: json['interval'] as String,
@@ -620,7 +623,10 @@ class TokenInsightResult {
         contributors = null,
         commitCount4Weeks = null;
 
-  TokenInsightResult._available({
+  /// Used both when parsing a JSON response (see [fromJson]) and when built
+  /// directly on-device from the CoinGecko coin-detail connector (see
+  /// repository.dart's getTokenInsight).
+  TokenInsightResult.fromComputed({
     required this.description,
     required this.categories,
     required this.genesisDate,
@@ -641,7 +647,7 @@ class TokenInsightResult {
     if (json['available'] == false) return TokenInsightResult.unavailable(json['reason'] as String);
     final community = json['community'] as Map<String, dynamic>;
     final developer = json['developer'] as Map<String, dynamic>;
-    return TokenInsightResult._available(
+    return TokenInsightResult.fromComputed(
       description: json['description'] as String?,
       categories: _asStringList(json['categories']),
       genesisDate: json['genesisDate'] as String?,
@@ -657,18 +663,4 @@ class TokenInsightResult {
       commitCount4Weeks: _asInt(developer['commitCount4Weeks']),
     );
   }
-}
-
-class CoingeckoSearchResult {
-  final String id;
-  final String name;
-  final String symbol;
-
-  CoingeckoSearchResult({required this.id, required this.name, required this.symbol});
-
-  factory CoingeckoSearchResult.fromJson(Map<String, dynamic> json) => CoingeckoSearchResult(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        symbol: json['symbol'] as String,
-      );
 }

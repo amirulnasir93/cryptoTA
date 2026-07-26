@@ -27,7 +27,21 @@ async function buildServer() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  await app.register(cors, { origin: config.webOrigin });
+  // The configured WEB_ORIGIN covers the React frontend's usual port, but
+  // other local-only clients (the Flutter app's web build, a Vite instance
+  // that fell back to a different port because 5173 was taken) run on
+  // whatever port they land on. This is a local dev API with no public
+  // exposure, so any localhost/127.0.0.1 origin is trusted rather than
+  // hardcoding one port.
+  await app.register(cors, {
+    origin: (origin, cb) => {
+      if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || origin === config.webOrigin) {
+        cb(null, true);
+        return;
+      }
+      cb(new Error("Not allowed by CORS"), false);
+    },
+  });
 
   await app.register(swagger, {
     openapi: { info: { title: "Crypto Analyzer API", version: "0.1.0" } },
