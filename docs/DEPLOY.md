@@ -1,8 +1,13 @@
 # Moving off "runs on my PC"
 
-The app is local-first today, but was deliberately built so hosting it
-elsewhere later needs configuration changes, not a rewrite. This is what
-changes and why.
+**This doc is only relevant if you're self-hosting `packages/backend`** --
+the deployed web app at GitHub Pages and the mobile app don't use it at all
+(see `docs/WEB_STANDALONE_SETUP.md` and `docs/MOBILE_SHEETS_SETUP.md`); they
+talk directly to your Google Sheet and the price APIs from the client, with
+no backend involved. The backend still fully works and is worth self-hosting
+if you want its persistent auto-refresh cron, its Swagger API, or a single
+shared always-on data source for multiple people -- this is what changes and
+why if you go that route.
 
 ## The database
 
@@ -55,16 +60,20 @@ HTTP endpoints.
 
 ## The frontend
 
-`packages/frontend` builds to static files (`npm run build --workspace packages/frontend`
-→ `packages/frontend/dist`). That can be hosted anywhere static files are
-served — GitHub Pages, Vercel, Netlify, or served directly by the backend.
-Set `VITE_API_URL` at build time to point it at wherever the backend ends up
-living, instead of the `http://localhost:3001` default.
+The deployed `packages/frontend` (GitHub Pages, see
+`docs/WEB_STANDALONE_SETUP.md`) does **not** talk to this backend at all --
+it's a separate standalone client of the same Google Sheet. This section only
+applies if you've deliberately reverted the frontend to the older
+backend-client architecture for your own self-hosted setup: it builds to
+static files (`npm run build --workspace packages/frontend` →
+`packages/frontend/dist`) that can be hosted anywhere, with `VITE_API_URL` set
+at build time to point at wherever this backend ends up living.
 
 ## CORS
 
-`WEB_ORIGIN` in the backend's `.env` controls the CORS allow-list. Update it
-to the frontend's real hosted origin once that's not `localhost:5173` anymore.
+Only relevant if something other than the standalone frontend talks to this
+backend over HTTP. `WEB_ORIGIN` in the backend's `.env` controls the CORS
+allow-list -- update it to that client's real origin.
 
 ## Google Sheets sync
 

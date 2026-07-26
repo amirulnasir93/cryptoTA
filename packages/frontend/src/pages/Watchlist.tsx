@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import type { Token } from "@crypto-analyzer/shared";
+import { searchCoingecko, type Token } from "@crypto-analyzer/shared";
 import {
   useArchiveToken,
   useCreateToken,
@@ -8,12 +8,13 @@ import {
   useRestoreToken,
   useTokens,
 } from "../api/queries";
-import { api } from "../api/client";
 import { TokenTable } from "../components/TokenTable";
 import { Modal } from "../components/Modal";
 import { SearchableSelect, type ComboOption } from "../components/SearchableSelect";
 import { EditTokenModal } from "../components/EditTokenModal";
+import { NotConfiguredNotice } from "../components/NotConfiguredNotice";
 import { COMMON_CHAINS } from "../constants";
+import { isReady } from "../appConfig";
 
 type StatusFilter = "active" | "archived" | "all";
 const STATUS_OPTIONS: StatusFilter[] = ["active", "archived", "all"];
@@ -29,6 +30,8 @@ export function Watchlist() {
   const archive = useArchiveToken();
   const restore = useRestoreToken();
   const remove = useRemoveToken();
+
+  if (!isReady()) return <NotConfiguredNotice />;
 
   return (
     <div className="space-y-4">
@@ -137,7 +140,7 @@ function AddTokenModal({ open, onClose }: { open: boolean; onClose: () => void }
     setCgLoading(true);
     cgTimer.current = setTimeout(async () => {
       try {
-        const results = await api.searchCoingecko(text);
+        const results = await searchCoingecko(text);
         setCgResults(
           results.map((r) => ({ value: r.id, label: `${r.name} (${r.symbol.toUpperCase()})`, sublabel: r.id }))
         );

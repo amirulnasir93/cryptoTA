@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataQualityFor, divergence, horizonsFor } from "../src/gating.js";
+import { dataQualityFor, divergence, horizonsFor } from "@crypto-analyzer/shared";
 
 // Cases mirror the worked examples in Skills/SKILL.md's gating table and
 // Skills/fetch.py's GATES thresholds, so a drift here should be caught here.

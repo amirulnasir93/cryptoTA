@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCandles, isoWeekKey } from "../src/candles.js";
+import { buildCandles, isoWeekKey } from "@crypto-analyzer/shared";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;

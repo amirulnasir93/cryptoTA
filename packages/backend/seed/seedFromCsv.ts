@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "csv-parse/sync";
 import { prisma } from "../src/db.js";
-import { collisionWarningFor } from "../src/knownCollisions.js";
+import { collisionWarningFor } from "@crypto-analyzer/shared";
 import { COINGECKO_ID_CORRECTIONS } from "../src/dataCorrections.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

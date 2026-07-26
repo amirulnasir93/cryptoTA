@@ -156,7 +156,12 @@ export function findSwingPoints(values: number[], window = 3): SwingPoint[] {
   return points;
 }
 
-export interface DivergenceFlag {
+// Prefixed "Raw" because index.ts's own DivergenceFlag (the wire-format
+// shape sent to clients: indicator/type/fromDate/toDate) is a different type
+// with the same natural name -- this one is index-based and internal to the
+// computation pipeline, converted to timestamps before it ever leaves
+// routes/analysis.ts (or the frontend/mobile equivalent).
+export interface RawDivergenceFlag {
   type: "bullish" | "bearish";
   fromIndex: number;
   toIndex: number;
@@ -170,9 +175,9 @@ export interface DivergenceFlag {
  * indicator makes a higher low (selling pressure decelerating). Bearish:
  * price makes a higher high while the indicator makes a lower high.
  */
-export function detectDivergence(closes: number[], indicator: Num[], window = 3): DivergenceFlag[] {
+export function detectDivergence(closes: number[], indicator: Num[], window = 3): RawDivergenceFlag[] {
   const swings = findSwingPoints(closes, window);
-  const flags: DivergenceFlag[] = [];
+  const flags: RawDivergenceFlag[] = [];
 
   const lows = swings.filter((p) => p.type === "low");
   for (let i = 1; i < lows.length; i++) {
@@ -315,16 +320,21 @@ export function findKeyLevels(closes: number[], window = 3, tolerancePct = 0.015
   return [...resistance, ...support].sort((a, b) => b.price - a.price);
 }
 
-export interface ChannelLine {
+// "Raw" for the same reason as RawDivergenceFlag above -- index.ts's own
+// ChannelLine/TrendChannel (fromTimestamp/toTimestamp) are the wire-format
+// versions; these are index-based and internal, converted to timestamps in
+// routes/analysis.ts (or the frontend/mobile equivalent) before being sent
+// anywhere.
+export interface RawChannelLine {
   fromIndex: number;
   fromPrice: number;
   toIndex: number;
   toPrice: number;
 }
 
-export interface TrendChannel {
-  upper: ChannelLine;
-  lower: ChannelLine;
+export interface RawTrendChannel {
+  upper: RawChannelLine;
+  lower: RawChannelLine;
 }
 
 /**
@@ -342,7 +352,7 @@ export interface TrendChannel {
  * which, and a channel that's already nonsensical right now isn't worth
  * showing at all.
  */
-export function computeTrendChannel(closes: number[], window = 3, extendBars = 5): TrendChannel | null {
+export function computeTrendChannel(closes: number[], window = 3, extendBars = 5): RawTrendChannel | null {
   const swings = findSwingPoints(closes, window);
   const highs = swings.filter((s) => s.type === "high").slice(-2);
   const lows = swings.filter((s) => s.type === "low").slice(-2);
@@ -372,7 +382,7 @@ export function computeTrendChannel(closes: number[], window = 3, extendBars = 5
     if (crossIndex > lastIndex && crossIndex < toIndex) toIndex = crossIndex;
   }
 
-  function extend(line: ReturnType<typeof lineOf>): ChannelLine {
+  function extend(line: ReturnType<typeof lineOf>): RawChannelLine {
     return {
       fromIndex: line.anchor.index,
       fromPrice: closes[line.anchor.index],

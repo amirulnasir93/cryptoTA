@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { prisma } from "../db.js";
-import { collisionWarningFor } from "../knownCollisions.js";
+import { collisionWarningFor } from "@crypto-analyzer/shared";
 import { serializeCatalyst, serializeSnapshot, serializeToken } from "../serializers.js";
 import {
   createTokenBodySchema,

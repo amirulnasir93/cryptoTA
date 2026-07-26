@@ -25,9 +25,21 @@ export async function fetchJsonWithReason<T = unknown>(
   options: FetchJsonOptions = {}
 ): Promise<FetchResult<T>> {
   const { retries = 4, headers = {} } = options;
+  // Setting User-Agent from a browser turns every request into a CORS
+  // preflight (it isn't a safelisted header) -- harmless for most of these
+  // APIs, but confirmed live that data-api.binance.vision's OPTIONS handler
+  // rejects the preflight outright (403) regardless of which header
+  // triggers it, which would silently block every Binance price fetch from
+  // the standalone frontend. Skip it in a browser so the request stays
+  // "simple" and needs no preflight at all; keep it for the Node backend,
+  // where there's no CORS concept and it's just polite API etiquette.
+  // Checked via a cast (not a bare `typeof window` reference) so this
+  // compiles under the backend's Node-only lib config too, which has no
+  // ambient `window` type at all -- this file is built by both tsconfigs.
+  const isBrowser = typeof (globalThis as Record<string, unknown>).window !== "undefined";
   const finalHeaders = {
     Accept: "application/json",
-    "User-Agent": "crypto-analyzer/0.1",
+    ...(isBrowser ? {} : { "User-Agent": "crypto-analyzer/0.1" }),
     ...headers,
   };
 

@@ -1,30 +1,22 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
-import { useRefreshSecret } from "../hooks/useRefreshSecret";
+import { isReady } from "../appConfig";
+import { useRefreshPrices } from "../api/queries";
 
-// Just the button, no secret input — for pages where that input would be
-// clutter. Reads the secret saved once on the Settings page.
+// No secret to enter anymore -- refreshing just means "fetch live prices for
+// every active token right now," straight from this browser.
 export function RefreshButton() {
-  const [secret] = useRefreshSecret();
-  const [busy, setBusy] = useState(false);
+  const refresh = useRefreshPrices();
   const [status, setStatus] = useState<string | null>(null);
-  const qc = useQueryClient();
+  const ready = isReady();
 
   async function handleRefresh() {
-    setBusy(true);
     setStatus(null);
     try {
-      const result = await api.runRefresh(secret);
-      setStatus(`Refreshed ${result.tokensProcessed} tokens (${result.status}).`);
-      qc.invalidateQueries({ queryKey: ["tokens"] });
-      qc.invalidateQueries({ queryKey: ["token"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      const dashboard = await refresh.mutateAsync();
+      setStatus(`Refreshed ${dashboard.tokenCount} tokens.`);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Refresh failed.");
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -32,14 +24,14 @@ export function RefreshButton() {
     <div className="flex flex-wrap items-center gap-3">
       <button
         onClick={handleRefresh}
-        disabled={!secret || busy}
+        disabled={!ready || refresh.isPending}
         className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
       >
-        {busy ? "Refreshing…" : "Refresh prices"}
+        {refresh.isPending ? "Refreshing…" : "Refresh prices"}
       </button>
-      {!secret && (
+      {!ready && (
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Set your <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">REFRESH_SECRET</code> on the{" "}
+          Finish setup on the{" "}
           <Link to="/settings" className="underline">
             Settings
           </Link>{" "}

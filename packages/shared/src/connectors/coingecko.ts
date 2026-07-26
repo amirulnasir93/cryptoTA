@@ -1,5 +1,9 @@
-import { config } from "../config.js";
 import { fetchJson, fetchJsonWithReason, type FetchFailureReason } from "./base.js";
+
+// apiKey is an explicit parameter, not read from a shared config module --
+// this file is imported by both the Node backend (its own config.ts reads
+// COINGECKO_API_KEY from process.env) and the browser frontend/mobile app
+// (their own local settings storage), neither of which the other can see.
 
 const CG = "https://api.coingecko.com/api/v3";
 
@@ -20,7 +24,8 @@ export interface CoingeckoMarket {
 
 /** Batched lookup: N tokens in one call, not N. */
 export async function fetchCoingeckoMarkets(
-  ids: string[]
+  ids: string[],
+  apiKey?: string
 ): Promise<Record<string, CoingeckoMarket>> {
   if (ids.length === 0) return {};
 
@@ -32,7 +37,7 @@ export async function fetchCoingeckoMarkets(
   });
 
   const headers: Record<string, string> = {};
-  if (config.coingeckoApiKey) headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
+  if (apiKey) headers["x-cg-demo-api-key"] = apiKey;
 
   const data = await fetchJson<CoingeckoMarket[]>(`${CG}/coins/markets?${params}`, { headers });
   if (!data) return {};
@@ -63,10 +68,14 @@ export type MarketChartOutcome =
  * problems for the caller to explain to a user -- the keyless public tier's
  * rate limit is low enough that the former happens routinely under normal
  * use (switching intervals a few times in a row is enough to trip it). */
-export async function fetchCoingeckoMarketChart(id: string, days = 90): Promise<MarketChartOutcome> {
+export async function fetchCoingeckoMarketChart(
+  id: string,
+  days = 90,
+  apiKey?: string
+): Promise<MarketChartOutcome> {
   const params = new URLSearchParams({ vs_currency: "usd", days: String(days) });
   const headers: Record<string, string> = {};
-  if (config.coingeckoApiKey) headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
+  if (apiKey) headers["x-cg-demo-api-key"] = apiKey;
 
   const result = await fetchJsonWithReason<{ prices: [number, number][]; total_volumes: [number, number][] }>(
     `${CG}/coins/${id}/market_chart?${params}`,
@@ -120,7 +129,7 @@ export interface CoingeckoCoinDetail {
  * against a live response before use: CoinGecko dropped twitter-follower
  * counts from community_data a while back (not just undocumented -- genuinely
  * absent from the payload), so that field is deliberately not modeled here. */
-export async function fetchCoingeckoCoinDetail(id: string): Promise<CoingeckoCoinDetail | null> {
+export async function fetchCoingeckoCoinDetail(id: string, apiKey?: string): Promise<CoingeckoCoinDetail | null> {
   const params = new URLSearchParams({
     localization: "false",
     tickers: "false",
@@ -130,7 +139,7 @@ export async function fetchCoingeckoCoinDetail(id: string): Promise<CoingeckoCoi
     sparkline: "false",
   });
   const headers: Record<string, string> = {};
-  if (config.coingeckoApiKey) headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
+  if (apiKey) headers["x-cg-demo-api-key"] = apiKey;
 
   return fetchJson<CoingeckoCoinDetail>(`${CG}/coins/${id}?${params}`, { headers });
 }

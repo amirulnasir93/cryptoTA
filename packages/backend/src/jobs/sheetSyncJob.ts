@@ -4,10 +4,9 @@
 
 import type { GoogleSpreadsheetRow } from "google-spreadsheet";
 import { prisma } from "../db.js";
-import { collisionWarningFor } from "../knownCollisions.js";
 import { getWatchlistSheet, isSheetsConfigured, SHEET_HEADERS } from "../sheets/sheetsClient.js";
 import { decideSyncAction, formatLabelList, hashRowFields, parseLabelList } from "./syncDecision.js";
-import type { TokenStatus } from "@crypto-analyzer/shared";
+import { collisionWarningFor, type TokenStatus } from "@crypto-analyzer/shared";
 
 // google-spreadsheet v4 rows are read/written via .get()/.set()/.assign(),
 // never direct property access (e.g. `row.Ticker` is always undefined) --

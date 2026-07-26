@@ -1,16 +1,19 @@
 import { useDashboard } from "../api/queries";
+import { isReady } from "../appConfig";
 import { StatTile } from "../components/StatTile";
 import { ClusterExposureChart } from "../components/ClusterExposureChart";
 import { TokenTable } from "../components/TokenTable";
 import { DeltaText } from "../components/DeltaText";
 import { RefreshButton } from "../components/RefreshButton";
+import { NotConfiguredNotice } from "../components/NotConfiguredNotice";
 
 export function Dashboard() {
   const { data, isLoading, error } = useDashboard();
 
+  if (!isReady()) return <NotConfiguredNotice />;
   if (isLoading) return <p className="text-neutral-500">Loading dashboard…</p>;
   if (error || !data) {
-    return <p style={{ color: "var(--delta-down)" }}>Failed to load dashboard.</p>;
+    return <p style={{ color: "var(--delta-down)" }}>{error instanceof Error ? error.message : "Failed to load dashboard."}</p>;
   }
 
   const { tokenCount, dataQualityCounts, clusterExposure, upcomingCatalysts, movers, tokens } = data;

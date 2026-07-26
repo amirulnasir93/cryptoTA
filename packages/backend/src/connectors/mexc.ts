@@ -3,7 +3,7 @@ import {
   fetchTicker24hr,
   type ExchangeSymbolInfo,
   type ExchangeTicker,
-} from "./binanceCompatibleExchange.js";
+} from "@crypto-analyzer/shared";
 
 export type { ExchangeSymbolInfo, ExchangeTicker };
 

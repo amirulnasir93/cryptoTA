@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import type { Token } from "@crypto-analyzer/shared";
-import { api } from "../api/client";
+import { searchCoingecko, type Token } from "@crypto-analyzer/shared";
 import { useLabels, useTokens, useUpdateToken } from "../api/queries";
 import { COMMON_CHAINS } from "../constants";
 import { Modal } from "./Modal";
@@ -60,7 +59,7 @@ export function EditTokenModal({ token, onClose }: { token: Token | null; onClos
     setCgLoading(true);
     cgTimer.current = setTimeout(async () => {
       try {
-        const results = await api.searchCoingecko(text);
+        const results = await searchCoingecko(text);
         setCgResults(
           results.map((r) => ({ value: r.id, label: `${r.name} (${r.symbol.toUpperCase()})`, sublabel: r.id }))
         );

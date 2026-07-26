@@ -14,6 +14,8 @@ import { DataQualityBadge } from "../components/DataQualityBadge";
 import { DeltaText } from "../components/DeltaText";
 import { InsightPanel } from "../components/InsightPanel";
 import { TechnicalAnalysisPanel } from "../components/TechnicalAnalysisPanel";
+import { NotConfiguredNotice } from "../components/NotConfiguredNotice";
+import { isReady } from "../appConfig";
 
 const TABS = ["Overview", "Technical analysis", "Insight"] as const;
 type Tab = (typeof TABS)[number];
@@ -29,20 +31,29 @@ export function TokenDetail() {
   const { data: insight, isLoading: insightLoading } = useTokenInsight(tab === "Insight" ? tokenId : undefined);
   const updateToken = useUpdateToken();
   const [notesDraft, setNotesDraft] = useState<string | null>(null);
+  const [newLabel, setNewLabel] = useState("");
 
+  if (!isReady()) return <NotConfiguredNotice />;
   if (isLoading) return <p className="text-neutral-500">Loading…</p>;
   if (!token) return <p className="text-neutral-500">Token not found.</p>;
 
   const s = token.latestSnapshot;
   const notes = notesDraft ?? token.notes ?? "";
 
-  function toggleLabel(labelId: number) {
+  function toggleLabel(name: string) {
     if (!token) return;
-    const has = token.labels.some((l) => l.id === labelId);
-    const nextIds = has
-      ? token.labels.filter((l) => l.id !== labelId).map((l) => l.id)
-      : [...token.labels.map((l) => l.id), labelId];
-    updateToken.mutate({ id: token.id, input: { labelIds: nextIds } });
+    const has = token.labels.some((l) => l.name === name);
+    const names = token.labels.map((l) => l.name);
+    const next = has ? names.filter((n) => n !== name) : [...names, name];
+    updateToken.mutate({ id: token.id, input: { labelNames: next } });
+  }
+
+  function addNewLabel() {
+    if (!token) return;
+    const name = newLabel.trim();
+    if (!name || token.labels.some((l) => l.name === name)) return;
+    updateToken.mutate({ id: token.id, input: { labelNames: [...token.labels.map((l) => l.name), name] } });
+    setNewLabel("");
   }
 
   function saveNotes() {
@@ -162,30 +173,44 @@ export function TokenDetail() {
             <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Labels</h2>
             <div className="flex flex-wrap gap-2">
               {labels?.map((l) => {
-                const active = token.labels.some((tl) => tl.id === l.id);
+                const active = token.labels.some((tl) => tl.name === l.name);
                 return (
                   <button
                     key={l.id}
-                    onClick={() => toggleLabel(l.id)}
+                    onClick={() => toggleLabel(l.name)}
                     className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                      active ? "border-transparent" : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
-                    }`}
-                    style={
                       active
-                        ? {
-                            backgroundColor: `color-mix(in srgb, ${l.color ?? "#666"} 18%, transparent)`,
-                            color: l.color ?? undefined,
-                          }
-                        : undefined
-                    }
+                        ? "border-transparent bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                        : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
+                    }`}
                   >
                     {l.name}
                   </button>
                 );
               })}
-              {(!labels || labels.length === 0) && (
-                <p className="text-sm text-neutral-400">No labels yet — create one on the Labels page.</p>
-              )}
+              {(!labels || labels.length === 0) && <p className="text-sm text-neutral-400">No labels yet.</p>}
+            </div>
+            <div className="mt-3 flex items-end gap-2">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">New label</label>
+                <input
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addNewLabel();
+                    }
+                  }}
+                  className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-sm text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100"
+                />
+              </div>
+              <button
+                onClick={addNewLabel}
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 dark:border-neutral-700 dark:text-neutral-100"
+              >
+                Add
+              </button>
             </div>
           </section>
 
@@ -200,7 +225,7 @@ export function TokenDetail() {
             />
           </section>
 
-          <CatalystSection tokenId={token.id} catalysts={token.catalysts} />
+          <CatalystSection ticker={token.ticker} catalysts={token.catalysts} />
         </>
       )}
 
@@ -239,7 +264,7 @@ function SourcePrice({ label, value }: { label: string; value: number | null }) 
   );
 }
 
-function CatalystSection({ tokenId, catalysts }: { tokenId: number; catalysts: Catalyst[] }) {
+function CatalystSection({ ticker, catalysts }: { ticker: string; catalysts: Catalyst[] }) {
   const createCatalyst = useCreateCatalyst();
   const deleteCatalyst = useDeleteCatalyst();
   const [form, setForm] = useState<{ eventDate: string; eventType: Catalyst["eventType"]; description: string }>({
@@ -252,7 +277,7 @@ function CatalystSection({ tokenId, catalysts }: { tokenId: number; catalysts: C
     e.preventDefault();
     if (!form.eventDate || !form.description) return;
     await createCatalyst.mutateAsync({
-      tokenId,
+      ticker,
       eventDate: form.eventDate,
       eventType: form.eventType,
       description: form.description,

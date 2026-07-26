@@ -2,9 +2,32 @@
 // frontend (React) so the two can't silently drift apart. All dates are ISO
 // strings, matching what actually travels over JSON.
 
+// Pure business logic (gating/candles/indicators/collision warnings) and the
+// keyless-API connectors live here too now, not just types -- both the
+// backend and the standalone frontend need the exact same math and fetch
+// logic, and there's no language boundary between them (unlike the Flutter
+// mobile app, which needed a real Dart port instead of a shared import).
+export * from "./gating.js";
+export * from "./candles.js";
+export * from "./indicators.js";
+export * from "./knownCollisions.js";
+export * from "./connectors/base.js";
+export * from "./connectors/coingecko.js";
+export * from "./connectors/dexscreener.js";
+export * from "./connectors/defillama.js";
+export * from "./connectors/binanceCompatibleExchange.js";
+export * from "./connectors/binance.js";
+
+// `export * from` re-exports these for external consumers but doesn't bind
+// them locally -- imported here too since the API-contract types below
+// reference them directly (e.g. MetricSnapshot.dataQuality: DataQuality).
+import type { DataQuality, Horizon } from "./gating.js";
+import type { ChartInterval } from "./candles.js";
+import type { TrendState, KeyLevel } from "./indicators.js";
+
 export type TokenStatus = "active" | "archived" | "removed";
-export type DataQuality = "Good" | "Degraded" | "Poor" | null;
-export type Horizon = "4h_scalp" | "1d_scalp" | "1d_hold" | "1w_hold" | "1m_hold";
+// DataQuality and Horizon now come from gating.js (re-exported above) --
+// identical shapes, no need for a second declaration here.
 export type CatalystType = "unlock" | "listing" | "governance" | "launch" | "other";
 export type ConflictResolution = "sheet_won" | "local_won";
 
@@ -128,15 +151,9 @@ export interface ConflictLogEntry {
   resolution: ConflictResolution;
 }
 
-// Technical analysis: describes CURRENT indicator state and flags divergence.
-// Never a price forecast -- see Skills/SKILL.md's own "this skill does not
-// predict prices" principle, which this app deliberately mirrors.
-export type TrendState = "Uptrend" | "Downtrend" | "Ranging";
-
-// Candle interval, CEX-style. Changes what each candle *represents* (and what
-// period RSI/MACD/StochRSI/OBV are computed over) -- not just how many
-// candles are shown.
-export type ChartInterval = "15m" | "1h" | "2h" | "4h" | "1d" | "2d" | "3d" | "1w" | "1M";
+// TrendState now comes from indicators.js and ChartInterval from candles.js
+// (both re-exported above) -- identical shapes to what used to be declared
+// here, no need for a second declaration.
 
 export interface AnalysisPoint {
   timestamp: string;
@@ -161,13 +178,8 @@ export interface DivergenceFlag {
   toDate: string;
 }
 
-// Support/resistance from actual swing structure -- a record of where price
-// has already reacted, not a guess at where it's going next.
-export interface KeyLevel {
-  price: number;
-  type: "support" | "resistance";
-  touches: number;
-}
+// KeyLevel now comes from indicators.js (re-exported above) -- identical
+// shape, no need for a second declaration.
 
 // A line through two real swing points, extended forward -- a geometric read
 // of observed structure, never a statistical/ML price prediction. Timestamps
@@ -255,11 +267,8 @@ export interface TokenInsightUnavailable {
 
 export type TokenInsightResult = TokenInsight | TokenInsightUnavailable;
 
-export interface CoingeckoSearchResult {
-  id: string;
-  name: string;
-  symbol: string;
-}
+// CoingeckoSearchResult now comes from connectors/coingecko.js (re-exported
+// above) -- identical shape, no need for a second declaration.
 
 export interface SyncResult {
   ranAt: string;

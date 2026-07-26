@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { searchCoingecko } from "../connectors/coingecko.js";
+import { searchCoingecko } from "@crypto-analyzer/shared";
 
 const query = z.object({ q: z.string().min(1) });
 

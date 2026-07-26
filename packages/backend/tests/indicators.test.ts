@@ -11,7 +11,7 @@ import {
   detectDivergence,
   findKeyLevels,
   findSwingPoints,
-} from "../src/indicators.js";
+} from "@crypto-analyzer/shared";
 
 describe("computeRSI", () => {
   it("is null before the warm-up period", () => {

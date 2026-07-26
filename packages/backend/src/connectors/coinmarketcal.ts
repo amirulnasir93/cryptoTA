@@ -1,5 +1,5 @@
 import { config } from "../config.js";
-import { fetchJson } from "./base.js";
+import { fetchJson } from "@crypto-analyzer/shared";
 
 const CMC_CAL = "https://api.coinmarketcal.com/v2";
 

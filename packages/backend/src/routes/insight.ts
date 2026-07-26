@@ -1,9 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import type { TokenInsightResult } from "@crypto-analyzer/shared";
+import { type TokenInsightResult, fetchCoingeckoCoinDetail } from "@crypto-analyzer/shared";
 import { prisma } from "../db.js";
-import { fetchCoingeckoCoinDetail } from "../connectors/coingecko.js";
+import { config } from "../config.js";
 
 const idParam = z.object({ id: z.coerce.number() });
 
@@ -23,7 +23,7 @@ export async function insightRoutes(appRaw: FastifyInstance) {
         return { available: false, reason: "No CoinGecko id on this token, so there's no project data to show." };
       }
 
-      const detail = await fetchCoingeckoCoinDetail(token.coingeckoId);
+      const detail = await fetchCoingeckoCoinDetail(token.coingeckoId, config.coingeckoApiKey);
       if (!detail) {
         return {
           available: false,

@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import type { ChartInterval, TokenAnalysisResult } from "@crypto-analyzer/shared";
-import { prisma } from "../db.js";
-import { fetchCoingeckoMarketChart, type MarketChartPoint } from "../connectors/coingecko.js";
-import { buildCandles, INTERVAL_FETCH_DAYS } from "../candles.js";
 import {
+  type ChartInterval,
+  type TokenAnalysisResult,
+  type MarketChartPoint,
+  fetchCoingeckoMarketChart,
+  buildCandles,
+  INTERVAL_FETCH_DAYS,
   classifyTrend,
   computeMACD,
   computeOBV,
@@ -14,7 +16,9 @@ import {
   computeTrendChannel,
   detectDivergence,
   findKeyLevels,
-} from "../indicators.js";
+} from "@crypto-analyzer/shared";
+import { prisma } from "../db.js";
+import { config } from "../config.js";
 
 const idParam = z.object({ id: z.coerce.number() });
 const CHART_INTERVALS = ["15m", "1h", "2h", "4h", "1d", "2d", "3d", "1w", "1M"] as const;
@@ -85,7 +89,11 @@ export async function analysisRoutes(appRaw: FastifyInstance) {
         };
       }
 
-      const chartOutcome = await fetchCoingeckoMarketChart(token.coingeckoId, INTERVAL_FETCH_DAYS[interval]);
+      const chartOutcome = await fetchCoingeckoMarketChart(
+        token.coingeckoId,
+        INTERVAL_FETCH_DAYS[interval],
+        config.coingeckoApiKey
+      );
       if (!chartOutcome.ok) {
         const reason =
           chartOutcome.reason === "rate_limited"

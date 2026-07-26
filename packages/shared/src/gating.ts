@@ -4,7 +4,7 @@
 // for a test that keeps this in lockstep with fetch.py's documented thresholds.
 
 export type Horizon = "4h_scalp" | "1d_scalp" | "1d_hold" | "1w_hold" | "1m_hold";
-export type DataQuality = "Good" | "Degraded" | "Poor";
+export type DataQuality = "Good" | "Degraded" | "Poor" | null;
 
 // Divergence thresholds gating each horizon. See Skills/references/timeframes.md.
 const GATES: [threshold: number, horizons: Horizon[]][] = [
@@ -56,7 +56,7 @@ export function horizonsFor(
 }
 
 /** Single top-level badge for the dashboard, derived from the same divergence buckets. */
-export function dataQualityFor(div: number | null): DataQuality | null {
+export function dataQualityFor(div: number | null): DataQuality {
   if (div === null) return null;
   if (div <= 0.05) return "Good";
   if (div <= 0.2) return "Degraded";

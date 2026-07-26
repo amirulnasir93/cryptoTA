@@ -6,13 +6,18 @@
 // a snapshot.json file.
 
 import { prisma } from "../db.js";
-import { fetchCoingeckoMarkets } from "../connectors/coingecko.js";
-import { fetchDexPrice } from "../connectors/dexscreener.js";
-import { fetchProtocol } from "../connectors/defillama.js";
-import { fetchBinanceTicker } from "../connectors/binance.js";
+import { config } from "../config.js";
 import { fetchMexcTicker } from "../connectors/mexc.js";
-import { divergence, horizonsFor, dataQualityFor } from "../gating.js";
-import { sleep } from "../connectors/base.js";
+import {
+  fetchCoingeckoMarkets,
+  fetchDexPrice,
+  fetchProtocol,
+  fetchBinanceTicker,
+  divergence,
+  horizonsFor,
+  dataQualityFor,
+  sleep,
+} from "@crypto-analyzer/shared";
 
 export interface RefreshRunSummary {
   fetchRunId: number;
@@ -42,7 +47,7 @@ export async function runRefresh(): Promise<RefreshRunSummary> {
 
     const coingeckoIds = tokens.map((t) => t.coingeckoId).filter((id): id is string => !!id);
     console.log(`[refresh] fetching CoinGecko markets for ${coingeckoIds.length} tokens...`);
-    const market = await fetchCoingeckoMarkets(coingeckoIds);
+    const market = await fetchCoingeckoMarkets(coingeckoIds, config.coingeckoApiKey);
 
     let processed = 0;
     let failures = 0;

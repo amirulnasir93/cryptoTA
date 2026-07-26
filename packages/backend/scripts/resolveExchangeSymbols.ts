@@ -7,9 +7,8 @@
 // Run with: npm run resolve-symbols --workspace packages/backend
 
 import { prisma } from "../src/db.js";
-import { fetchBinanceExchangeInfo } from "../src/connectors/binance.js";
 import { fetchMexcExchangeInfo } from "../src/connectors/mexc.js";
-import { KNOWN_TICKER_COLLISIONS } from "../src/knownCollisions.js";
+import { fetchBinanceExchangeInfo, KNOWN_TICKER_COLLISIONS } from "@crypto-analyzer/shared";
 
 async function main() {
   const tokens = await prisma.token.findMany({ where: { status: { not: "removed" } } });

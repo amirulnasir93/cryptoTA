@@ -3,9 +3,14 @@
 A local-first web app for tracking a crypto token watchlist: add/archive/remove
 tokens, group them into overlapping labels, and see a metrics dashboard (both
 portfolio-wide and per-token) built from CoinGecko, DexScreener, DefiLlama,
-Binance and MEXC. Optionally keeps itself in sync both ways with a Google
-Sheet. A standalone Android app (`mobile/`) is also available — see
-[Mobile app](#mobile-app-android) below.
+Binance and MEXC. `packages/frontend` talks directly to a Google Sheet (as its
+database) and to those price APIs from the browser — no backend required —
+so it can be hosted for free on GitHub Pages; see
+[Web app hosting](#web-app-hosting-github-pages) below. A standalone Android
+app (`mobile/`) is also available — see [Mobile app](#mobile-app-android)
+below. `packages/backend` (Fastify + Prisma/SQLite + node-cron) still exists
+and works for anyone who'd rather self-host a persistent, always-on backend
+instead — see `docs/DEPLOY.md`.
 
 It grew out of the `Skills/token-watchlist-analyst` Claude Code Skill in this
 repo — that Skill's cross-source divergence gating, ticker-collision traps and
@@ -51,19 +56,21 @@ npm run resolve-symbols --workspace packages/backend
 npm run dev
 ```
 
-This starts the backend on `http://localhost:3001` (Swagger docs at
-`/docs`) and the frontend on `http://localhost:5173`. The backend also starts
-a background job (`node-cron`, interval set by `REFRESH_CRON` in `.env`) that
-periodically refreshes prices/metrics for every active token.
+This starts the backend on `http://localhost:3001` (Swagger docs at `/docs`,
+useful if you're self-hosting it — see `docs/DEPLOY.md`) and the frontend on
+`http://localhost:5173`. The frontend doesn't talk to that backend at all,
+though — the first time you open it, go to **Settings** and paste a Sheet ID
+and a Web OAuth Client ID (see `docs/WEB_STANDALONE_SETUP.md`), then sign in
+with Google. It refreshes prices for every active token itself, on a plain
+"Refresh prices" button — there's no cron in the browser to wait for.
 
-To trigger a refresh manually instead of waiting for the cron:
+The backend's own `node-cron` job (interval set by `REFRESH_CRON` in `.env`)
+and its `POST /refresh/run` endpoint still work for anyone actually using the
+backend directly (Swagger, a script, a self-hosted alternate frontend):
 
 ```bash
 curl -X POST http://localhost:3001/refresh/run -H "x-refresh-secret: <REFRESH_SECRET from .env>"
 ```
-
-(The frontend's Watchlist page has a "Refresh prices" button that does the
-same thing once you paste that secret in.)
 
 ## Google Sheets two-way sync
 
@@ -96,6 +103,15 @@ docs/                 architecture, Sheets setup, deploy notes
 ```bash
 npm test   # gating logic + sync-decision logic, run with vitest
 ```
+
+## Web app hosting (GitHub Pages)
+
+`packages/frontend` builds to static files and is deployed automatically to
+GitHub Pages by `.github/workflows/deploy.yml` on every push to `main` (once
+Pages is enabled once in the repo's Settings). It needs no backend — same
+direct-to-Sheet, direct-to-price-API architecture as the mobile app below,
+just running in a browser instead of on a phone. One-time setup (reuses the
+mobile app's Web OAuth Client ID): see `docs/WEB_STANDALONE_SETUP.md`.
 
 ## Mobile app (Android)
 
