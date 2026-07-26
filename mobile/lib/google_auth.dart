@@ -39,10 +39,18 @@ class GoogleAuthService {
     return _account;
   }
 
-  /// Interactive sign-in, prompting the user.
+  /// Interactive sign-in, prompting the user. Deliberately does NOT pass
+  /// scopeHint here -- that requests a *combined* authentication+authorization
+  /// flow, which is what was actually failing with "28444: Developer console
+  /// is not set up correctly" (confirmed via adb logcat: plain identity
+  /// sign-in succeeded, then the very next step -- authorizing the
+  /// spreadsheets scope inline -- failed). The package's own docs recommend
+  /// keeping sign-in and scope authorization separate; authHeaders() below
+  /// already does the separate authorization call, and is what every real
+  /// Sheets request goes through anyway.
   Future<GoogleSignInAccount> signIn(String serverClientId) async {
     await _ensureInitialized(serverClientId);
-    _account = await GoogleSignIn.instance.authenticate(scopeHint: sheetsScopes);
+    _account = await GoogleSignIn.instance.authenticate();
     return _account!;
   }
 
