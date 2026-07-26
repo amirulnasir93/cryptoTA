@@ -46,6 +46,7 @@ import {
   fetchDexPrice,
   fetchProtocol,
   fetchBinanceTicker,
+  fetchFearGreedIndex,
   searchCoingecko as searchCoingeckoConnector,
 } from "@crypto-analyzer/shared";
 import { SheetsClient, watchlistTab, catalystsTab } from "./sheetsClient";
@@ -408,6 +409,11 @@ export class Repository {
       .slice(0, 5)
       .map((t) => ({ ticker: t.ticker, tokenId: t.id, change24hPct: t.latestSnapshot!.change24hPct }));
 
+    // A single, cheap, keyless call (market-wide, not per-token) -- fetched
+    // fresh on every dashboard load rather than cached, unlike the per-token
+    // refresh loop's pacing concerns.
+    const fearGreed = await fetchFearGreedIndex();
+
     return {
       generatedAt: now.toISOString(),
       tokenCount: tokens.length,
@@ -416,6 +422,7 @@ export class Repository {
       upcomingCatalysts: upcoming,
       movers,
       tokens,
+      fearGreed,
     };
   }
 

@@ -1,5 +1,6 @@
 // Mirrors packages/shared/src/index.ts -- the same API contract the web
 // frontend consumes, just modeled as Dart classes instead of TS interfaces.
+import 'connectors/fear_greed.dart';
 
 int? _asInt(dynamic v) => v == null ? null : (v as num).toInt();
 double? _asDouble(dynamic v) => v == null ? null : (v as num).toDouble();
@@ -363,6 +364,7 @@ class DashboardSummary {
   final List<UpcomingCatalyst> upcomingCatalysts;
   final List<Mover> movers;
   final List<Token> tokens;
+  final FearGreedIndex? fearGreed;
 
   DashboardSummary({
     required this.generatedAt,
@@ -372,6 +374,7 @@ class DashboardSummary {
     required this.upcomingCatalysts,
     required this.movers,
     required this.tokens,
+    this.fearGreed,
   });
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) => DashboardSummary(

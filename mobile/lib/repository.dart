@@ -14,6 +14,7 @@ import 'connectors/coingecko.dart' as cg;
 import 'connectors/dexscreener.dart' as dex;
 import 'connectors/defillama.dart' as llama;
 import 'connectors/binance_compatible.dart' as exch;
+import 'connectors/fear_greed.dart';
 import 'connectors/http_client.dart' show FetchFailureReason;
 
 const _validStatuses = ['active', 'archived', 'removed'];
@@ -107,22 +108,32 @@ class AppRepository {
     return all.where((t) => t.status != 'removed').toList();
   }
 
-  Future<List<Catalyst>> _catalystsFor(String ticker) async {
+  // Reads the whole Catalysts tab once -- getDashboard() needs catalysts for
+  // every active token, and re-reading the same tab per-token in a loop
+  // would multiply Sheets API calls by the watchlist size for no reason
+  // (same bug found and fixed in the web frontend's repository.ts earlier).
+  Future<List<(String ticker, Catalyst catalyst)>> _allCatalystRows() async {
     final rows = await sheets.readRows(catalystsTab);
-    final out = <Catalyst>[];
-    for (var i = 0; i < rows.length; i++) {
-      final row = rows[i];
-      if (row[0].trim().toUpperCase() != ticker) continue;
-      out.add(Catalyst(
-        id: i + 2,
-        tokenId: 0,
-        eventDate: row[1],
-        eventType: row[2].isEmpty ? 'other' : row[2],
-        description: row[3],
-        sizePctOfSupply: double.tryParse(row[4]),
-        sourceUrl: row[5].isEmpty ? null : row[5],
-      ));
-    }
+    return [
+      for (var i = 0; i < rows.length; i++)
+        (
+          rows[i][0].trim().toUpperCase(),
+          Catalyst(
+            id: i + 2,
+            tokenId: 0,
+            eventDate: rows[i][1],
+            eventType: rows[i][2].isEmpty ? 'other' : rows[i][2],
+            description: rows[i][3],
+            sizePctOfSupply: double.tryParse(rows[i][4]),
+            sourceUrl: rows[i][5].isEmpty ? null : rows[i][5],
+          ),
+        ),
+    ];
+  }
+
+  Future<List<Catalyst>> _catalystsFor(String ticker) async {
+    final all = await _allCatalystRows();
+    final out = all.where((r) => r.$1 == ticker).map((r) => r.$2).toList();
     out.sort((a, b) => a.eventDate.compareTo(b.eventDate));
     return out;
   }
@@ -342,32 +353,38 @@ class AppRepository {
       ..sort((a, b) => b.tokenCount.compareTo(a.tokenCount));
 
     final now = DateTime.now();
+    final tickers = tokens.map((t) => t.ticker).toSet();
+    final tokenByTicker = {for (final t in tokens) t.ticker: t};
+    final allCatalysts = await _allCatalystRows();
     final upcoming = <UpcomingCatalyst>[];
-    for (final t in tokens) {
-      final catalysts = await _catalystsFor(t.ticker);
-      for (final c in catalysts) {
-        final eventDate = DateTime.tryParse(c.eventDate);
-        if (eventDate == null) continue;
-        final daysUntil = eventDate.difference(now).inDays;
-        if (daysUntil < 0 || daysUntil > 90) continue;
-        upcoming.add(UpcomingCatalyst(
-          id: c.id,
-          tokenId: t.id,
-          eventDate: c.eventDate,
-          eventType: c.eventType,
-          description: c.description,
-          sizePctOfSupply: c.sizePctOfSupply,
-          sourceUrl: c.sourceUrl,
-          ticker: t.ticker,
-          daysUntil: daysUntil,
-        ));
-      }
+    for (final (ticker, c) in allCatalysts) {
+      if (!tickers.contains(ticker)) continue;
+      final eventDate = DateTime.tryParse(c.eventDate);
+      if (eventDate == null) continue;
+      final daysUntil = eventDate.difference(now).inDays;
+      if (daysUntil < 0 || daysUntil > 90) continue;
+      upcoming.add(UpcomingCatalyst(
+        id: c.id,
+        tokenId: tokenByTicker[ticker]!.id,
+        eventDate: c.eventDate,
+        eventType: c.eventType,
+        description: c.description,
+        sizePctOfSupply: c.sizePctOfSupply,
+        sourceUrl: c.sourceUrl,
+        ticker: ticker,
+        daysUntil: daysUntil,
+      ));
     }
     upcoming.sort((a, b) => a.eventDate.compareTo(b.eventDate));
 
     final movers = tokens.where((t) => t.latestSnapshot?.change24hPct != null).toList()
       ..sort((a, b) =>
           b.latestSnapshot!.change24hPct!.abs().compareTo(a.latestSnapshot!.change24hPct!.abs()));
+
+    // A single, cheap, keyless call (market-wide, not per-token) -- fetched
+    // fresh on every dashboard load rather than cached, unlike the per-token
+    // refresh loop's pacing concerns.
+    final fearGreed = await fetchFearGreedIndex();
 
     return DashboardSummary(
       generatedAt: now.toIso8601String(),
@@ -377,6 +394,7 @@ class AppRepository {
       upcomingCatalysts: upcoming,
       movers: movers.take(5).map((t) => Mover(ticker: t.ticker, tokenId: t.id, change24hPct: t.latestSnapshot?.change24hPct)).toList(),
       tokens: tokens,
+      fearGreed: fearGreed,
     );
   }
 

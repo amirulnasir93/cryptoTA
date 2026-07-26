@@ -17,6 +17,7 @@ export * from "./connectors/dexscreener.js";
 export * from "./connectors/defillama.js";
 export * from "./connectors/binanceCompatibleExchange.js";
 export * from "./connectors/binance.js";
+export * from "./connectors/fearGreed.js";
 
 // `export * from` re-exports these for external consumers but doesn't bind
 // them locally -- imported here too since the API-contract types below
@@ -24,6 +25,7 @@ export * from "./connectors/binance.js";
 import type { DataQuality, Horizon } from "./gating.js";
 import type { ChartInterval } from "./candles.js";
 import type { TrendState, KeyLevel } from "./indicators.js";
+import type { FearGreedIndex } from "./connectors/fearGreed.js";
 
 export type TokenStatus = "active" | "archived" | "removed";
 // DataQuality and Horizon now come from gating.js (re-exported above) --
@@ -145,6 +147,10 @@ export interface DashboardSummary {
     change24hPct: number | null;
   }[];
   tokens: Token[];
+  // Optional -- populated by the standalone web/mobile clients' own
+  // refreshAndGetDashboard; the self-hosted backend's existing dashboard
+  // route doesn't set this.
+  fearGreed?: FearGreedIndex | null;
 }
 
 export interface ConflictLogEntry {

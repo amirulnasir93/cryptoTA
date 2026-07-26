@@ -5,6 +5,7 @@ import '../models.dart';
 import '../widgets/candlestick_chart_widget.dart';
 import '../widgets/common.dart';
 import '../widgets/indicator_charts.dart';
+import '../widgets/zoomable_range.dart';
 
 const _intervals = ['15m', '1h', '2h', '4h', '1d', '2d', '3d', '1w', '1M'];
 
@@ -90,33 +91,44 @@ class _TechnicalAnalysisTabState extends State<TechnicalAnalysisTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'A mechanical read of current indicator state -- not a price forecast.',
+                    'A mechanical read of current indicator state -- not a price forecast. Pinch to zoom, drag to pan, double-tap to reset.',
                     style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 12, 12, 4),
-                      child: SizedBox(
-                        height: 280,
-                        child: CandlestickChartWidget(
-                          points: result.points,
-                          keyLevels: result.keyLevels,
-                          trendChannel: result.trendChannel,
-                        ),
-                      ),
-                    ),
+                  ZoomableRange(
+                    key: ValueKey(_interval),
+                    totalLength: result.points.length,
+                    builder: (context, startIndex, endIndex) {
+                      final visible = result.points.sublist(startIndex, endIndex);
+                      return Column(
+                        children: [
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 12, 12, 4),
+                              child: SizedBox(
+                                height: 280,
+                                child: CandlestickChartWidget(
+                                  points: visible,
+                                  keyLevels: result.keyLevels,
+                                  trendChannel: result.trendChannel,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          MacdChart(points: visible),
+                          const SizedBox(height: 8),
+                          StochRsiChart(points: visible),
+                          const SizedBox(height: 8),
+                          RsiChart(points: visible),
+                          const SizedBox(height: 8),
+                          VolumeChart(points: visible),
+                          const SizedBox(height: 8),
+                          ObvChart(points: visible),
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  MacdChart(points: result.points),
-                  const SizedBox(height: 8),
-                  StochRsiChart(points: result.points),
-                  const SizedBox(height: 8),
-                  RsiChart(points: result.points),
-                  const SizedBox(height: 8),
-                  VolumeChart(points: result.points),
-                  const SizedBox(height: 8),
-                  ObvChart(points: result.points),
                   if (result.divergences.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const SectionHeader(title: 'Divergence'),

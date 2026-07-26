@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../repository.dart';
 import '../models.dart';
 import '../widgets/common.dart';
+import '../widgets/skeleton.dart';
 import 'token_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const DashboardSkeleton();
           }
           if (snapshot.hasError) {
             return ErrorRetry(message: 'Could not load dashboard: ${snapshot.error}', onRetry: _reload);
@@ -110,6 +111,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
+                if (d.fearGreed != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatTile(
+                          label: 'Fear & greed',
+                          icon: Icons.speed_rounded,
+                          iconColor: d.fearGreed!.value >= 55
+                              ? upColor
+                              : d.fearGreed!.value <= 45
+                                  ? downColor
+                                  : null,
+                          value: Text(
+                            '${d.fearGreed!.value}',
+                            style: TextStyle(
+                              color: d.fearGreed!.value >= 55
+                                  ? upColor
+                                  : d.fearGreed!.value <= 45
+                                      ? downColor
+                                      : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: StatTile(
+                          label: 'Market mood',
+                          icon: Icons.psychology_rounded,
+                          value: Text(d.fearGreed!.classification, style: const TextStyle(fontSize: 14)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (d.clusterExposure.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   const SectionHeader(

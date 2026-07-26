@@ -16,13 +16,20 @@ export function Dashboard() {
     return <p style={{ color: "var(--delta-down)" }}>{error instanceof Error ? error.message : "Failed to load dashboard."}</p>;
   }
 
-  const { tokenCount, dataQualityCounts, clusterExposure, upcomingCatalysts, movers, tokens } = data;
+  const { tokenCount, dataQualityCounts, clusterExposure, upcomingCatalysts, movers, tokens, fearGreed } = data;
+  const fearGreedColor = fearGreed
+    ? fearGreed.value >= 55
+      ? "var(--delta-up)"
+      : fearGreed.value <= 45
+        ? "var(--delta-down)"
+        : undefined
+    : undefined;
 
   return (
     <div className="space-y-6">
       <RefreshButton />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <StatTile label="Watchlist" value={tokenCount} sub="active tokens" />
         <StatTile
           label="Data quality"
@@ -35,6 +42,13 @@ export function Dashboard() {
           sub={movers[0] ? <DeltaText value={movers[0].change24hPct} /> : undefined}
         />
         <StatTile label="Clusters" value={clusterExposure.length} sub="correlated groups" />
+        {fearGreed && (
+          <StatTile
+            label="Fear & greed"
+            value={<span style={{ color: fearGreedColor }}>{fearGreed.value}</span>}
+            sub={fearGreed.classification}
+          />
+        )}
       </div>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
