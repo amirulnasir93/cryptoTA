@@ -1,0 +1,14 @@
+Ticker,Project,Chain,Contract,CoinGecko ID,DefiLlama Slug,Binance Symbol,MEXC Symbol,Cluster,Notes,Labels,Status
+AERO,Aerodrome Finance,Base,,aerodrome-finance,aerodrome,AEROUSDT,AEROUSDT,Base/trading venue,"ve(3,3) emissions decaying per epoch",,active
+APEX,ApeX Protocol,multichain,0x52a8845df664d76c69d2eea607cd793565af42b8,apex-token-2,,,,Trading venue,Ticker collides with other APEX tokens,,active
+BASED,Based One,Ethereum/BSC/Hyperliquid,0x4f2b33840227ddd0e28da8d4185d6fa07adfed87,based-one,,,,Trading venue/Hyperliquid,Coinbase ticker is BASED1; LayerZero OFT so supply splits across chains; roughly 700M of 1B locked,,active
+CRV,Curve DAO Token,Ethereum,,curve-dao-token,curve-finance,CRVUSDT,CRVUSDT,Curve complex,veCRV vote-escrow; 2023 Vyper exploit history,,active
+CVX,Convex Finance,Ethereum,,convex-finance,convex-finance,CVXUSDT,CVXUSDT,Curve complex,Value derives from Curve gauge votes - not independent of CRV,,active
+ENSO,Enso Network,multichain,,enso,,ENSOUSDT,ENSOUSDT,AI-agent/infra,Max supply disputed across sources,,active
+EVAA,EVAA Protocol,TON,0xaa036928c9c0Df07d525B55ea8EE690Bb5a628C1,evaa-protocol,evaa-protocol,,EVAAUSDT,TON/lending,Primary trading liquidity on BNB Chain 0xaa036928c9c0Df07d525B55ea8EE690Bb5a628C1 - fetch both,,active
+GENIUS,Genius Terminal,multichain,,genius-3,,,,Trading venue,Distinct from GENI and GNUS; vesting schedule undisclosed,,active
+RECALL,Recall Network,Base,0x1f16e03c1a5908818f47f6ee7bb16690b40d0671,recall,,,RECALLUSDT,AI-agent,Team and investor cliff 1 Jan 2027; sources previously diverged ~4x,,active
+TRADOOR,Tradoor,TON,0x9123400446a56176eb1b6be9ee5cf703e409f492,tradoor,tradoor,,TRADOORUSDT,TON/perps,BNB deployment 0x9123400446a56176eb1b6be9ee5cf703e409f492 holds most volume; anonymous team,,active
+UAI,UnifAI Network,BNB Chain,0x67ac3f3c3386cae1e900f3d03840190055edb941,unifai-network,,,,AI-agent,Low float roughly 24 percent,,active
+UNI,Uniswap,Ethereum,,uniswap,uniswap,UNIUSDT,UNIUSDT,Trading venue,Extreme holder concentration - top 10 over 50 percent,,active
+ZEST,Zest Protocol,Stacks,,zest-protocol,,,,BTCFi,Low float roughly 15 percent; unlock schedule unconfirmed,,active

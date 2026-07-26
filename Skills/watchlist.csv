@@ -1,0 +1,14 @@
+ticker,project,chain,contract,coingecko_id,defillama_slug,cluster,notes
+EVAA,EVAA Protocol,TON,EQBKMfjX_a_dsOLm-juxyVZytFP7_KKnzGv6J01kGc72gVBp,evaa-protocol,evaa-protocol,TON/lending,Primary trading liquidity on BNB Chain 0xaa036928c9c0Df07d525B55ea8EE690Bb5a628C1 - fetch both
+ENSO,Enso Network,multichain,,enso,,AI-agent/infra,Max supply disputed across sources
+TRADOOR,Tradoor,TON,,tradoor,tradoor,TON/perps,BNB deployment 0x9123400446a56176eb1b6be9ee5cf703e409f492 holds most volume; anonymous team
+CRV,Curve DAO Token,Ethereum,,curve-dao-token,curve-finance,Curve complex,veCRV vote-escrow; 2023 Vyper exploit history
+APEX,ApeX Protocol,multichain,,apex-token,,Trading venue,Ticker collides with other APEX tokens
+RECALL,Recall Network,Base,,recall-network,,AI-agent,Team and investor cliff 1 Jan 2027; sources previously diverged ~4x
+UNI,Uniswap,Ethereum,,uniswap,uniswap,Trading venue,Extreme holder concentration - top 10 over 50 percent
+CVX,Convex Finance,Ethereum,,convex-finance,convex-finance,Curve complex,Value derives from Curve gauge votes - not independent of CRV
+UAI,UnifAI Network,BNB Chain,0x67ac3f3c3386cae1e900f3d03840190055edb941,unifai-network,,AI-agent,Low float roughly 24 percent
+ZEST,Zest Protocol,Stacks,,zest-protocol,,BTCFi,Low float roughly 15 percent; unlock schedule unconfirmed
+AERO,Aerodrome Finance,Base,,aerodrome-finance,aerodrome,Base/trading venue,ve(3,3) emissions decaying per epoch
+BASED,Based One,Ethereum/BSC/Hyperliquid,0x4f2b33840227ddd0e28da8d4185d6fa07adfed87,based-one,,Trading venue/Hyperliquid,Coinbase ticker is BASED1; LayerZero OFT so supply splits across chains; roughly 700M of 1B locked
+GENIUS,Genius Terminal,multichain,,genius-3,,Trading venue,Distinct from GENI and GNUS; vesting schedule undisclosed

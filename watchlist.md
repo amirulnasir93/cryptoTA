@@ -1,0 +1,16 @@
+Watchlist:
+
+25072026
+1. Evaa
+2. Enso
+3. Tradoor
+4. CRV
+5. APEX
+6. RECALL
+7. UNI
+8. CVX
+9. UAI
+10. ZEST
+11. AERO
+12. BASED
+13. GENIUS

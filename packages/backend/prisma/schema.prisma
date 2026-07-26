@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Token {
+  id               Int      @id @default(autoincrement())
+  ticker           String
+  projectName      String?
+  primaryChain     String?
+  coingeckoId      String?
+  defillamaSlug    String?
+  binanceSymbol    String?
+  mexcSymbol       String?
+  cluster          String?
+  notes            String?
+  collisionWarning String?
+  status           String   @default("active") // active | archived | removed
+  localVersion     Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  deployments    TokenDeployment[]
+  labels         TokenLabel[]
+  snapshots      MetricSnapshot[]
+  catalysts      Catalyst[]
+  sheetSyncState SheetSyncState?
+  conflictLogs   ConflictLog[]
+
+  @@index([status])
+  @@index([ticker])
+}
+
+model TokenDeployment {
+  id                 Int     @id @default(autoincrement())
+  tokenId            Int
+  token              Token   @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  chain              String
+  contractAddress    String?
+  isPrimaryLiquidity Boolean @default(false)
+  notes              String?
+}
+
+model Label {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+
+  tokens TokenLabel[]
+}
+
+model TokenLabel {
+  tokenId Int
+  labelId Int
+  addedAt DateTime @default(now())
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([tokenId, labelId])
+}
+
+model MetricSnapshot {
+  id      Int   @id @default(autoincrement())
+  tokenId Int
+  token   Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  fetchedAt DateTime
+
+  priceCoingecko   Float?
+  priceDexscreener Float?
+  priceBinance     Float?
+  priceMexc        Float?
+  divergencePct    Float?
+
+  marketCap    Float?
+  fdv          Float?
+  volume24h    Float?
+  volumeToMcap Float?
+
+  change24hPct Float?
+  change7dPct  Float?
+  change30dPct Float?
+
+  ath                Float?
+  drawdownFromAthPct Float?
+
+  circulatingSupply Float?
+  totalSupply       Float?
+  floatPct          Float?
+
+  tvl              Float?
+  tvlChange30dPct  Float?
+
+  dataQuality            String?
+  assessableHorizonsJson String?
+  gatingReason           String?
+  rawJson                String?
+
+  @@index([tokenId, fetchedAt])
+}
+
+model FetchRun {
+  id           Int       @id @default(autoincrement())
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  status       String    @default("running") // running | ok | partial | failed
+  tokensCount  Int?
+  errorSummary String?
+}
+
+model Catalyst {
+  id              Int      @id @default(autoincrement())
+  tokenId         Int
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  eventDate       DateTime
+  eventType       String // unlock | listing | governance | launch | other
+  description     String
+  sizePctOfSupply Float?
+  sourceUrl       String?
+  createdAt       DateTime @default(now())
+}
+
+model SheetSyncState {
+  tokenId         Int       @id
+  token           Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  sheetRow        Int?
+  baseContentHash String?
+  lastSyncedAt    DateTime?
+}
+
+model ConflictLog {
+  id         Int      @id @default(autoincrement())
+  tokenId    Int
+  token      Token    @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  detectedAt DateTime @default(now())
+  field      String
+  localValue String?
+  sheetValue String?
+  resolution String // sheet_won | local_won
+}
